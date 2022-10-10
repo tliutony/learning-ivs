@@ -9,15 +9,7 @@ model = dict(
     # Visual Backbone from Timm Models library
     backbone=dict(
         type='TimmModels',
-        embedding=dict(type='ConvEmbedding',
-                       input_length=4,
-                       embedding_size=32,
-                       position=False,
-                       kernel_size=10,
-                       stride=10,
-                       mode='1d'
-                       ),
-        model_name='resnet50',
+        model_name='resnet18',
         features_only=False,
         remove_fc=True,
         pretrained=False
