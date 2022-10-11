@@ -5,18 +5,19 @@ loss = [dict(type='TorchLoss', loss_name='MSELoss', multi_label=True, loss_weigh
 
 model = dict(
     # Base Encoder Decoder Architecture (Backbone+Head)
-    type='CIEncoder',
+    type='BaseEncoderDecoder',
     # Visual Backbone from Timm Models library
     backbone=dict(
-        type='TimmModels',
-        model_name='resnet18',
-        features_only=False,
-        remove_fc=True,
-        pretrained=False
+        type='CIEncoder',
+        in_channels=4,
+        hidden_size=64,
+        patch_size=10,
+        nhead=4
     ),
     # Linear Head for classification
     head=dict(
         type='BaseHead',
+        in_channels=64,
         in_index=-1,
         dropout=0.3,
         num_classes=num_classes,
@@ -93,7 +94,7 @@ log = dict(
     # work directory, used for saving checkpoints and loggings
     work_dir='/data2/charon/LCI',
     # explicit directory under work_dir for checkpoints and config
-    exp_name='ci_lingam-n_datasets=100-n_samples=500_10000-model=resnet50-embedding=128-lr=0.1-epoch=100',
+    exp_name='ci_lingam-n_datasets=10000-n_samples=500_10000-model=Conv1dAttFCN-embedding=64',
     logger_interval=50,
     # monitor metric for saving checkpoints
     monitor='val_mean_squared_error',
@@ -127,7 +128,7 @@ cudnn_benchmark = True
 optimization = dict(
     # running time unit, support epoch and iter
     type='epoch',
-    # total running units
+    # total running unitsw
     max_iters=100,
     # optimizer
     optimizer=dict(type='AdamW', lr=1e-3, weight_decay=0.0005),
