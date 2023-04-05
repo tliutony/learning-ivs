@@ -14,7 +14,7 @@
 
 1. Access via a docker:
    1. git clone https://github.com/tliu526/learning-ivs/tree/dev
-   2. cd learning-ivs/env/podman && podman build -t liv .
+   2. cd learning-ivs/environment/podman && podman build -t liv .
    3. podman run --name=liv_kernel --gpus all --ipc=host -dit -v /home/charon/project:/project -p 7777:33 liv
    4. Now you are in the container, you can run the code in the container
    More details about podman: [KordingLab/podman](https://github.com/KordingLab/wiki/tree/master/compute/containers])
@@ -22,7 +22,7 @@
 2. Access via a conda environment:
    1. git clone https://github.com/tliu526/learning-ivs/tree/dev
    2. conda env create -n liv python=3.9
-   3. cd cd learning-ivs/env/conda
+   3. cd cd learning-ivs/environment/conda
    4. conda activate liv && pip install -r requirements.txt
 
 ## Usage
@@ -52,7 +52,7 @@
 │   │   │   ├── cnn_linear_normal_test.py # cnn working on the linear_normal generated data
 │   │   │   ├── gcn_linear_normal_train.py # gcn working on the linear_normal generated data
 │   │   │   ├── mlp_linear_norm.py # mlp working on the linear_normal generated data
-│   ├── env
+│   ├── environment
 ```
 
 ### Training
