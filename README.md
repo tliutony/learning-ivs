@@ -26,6 +26,7 @@
    4. conda activate liv && pip install -r requirements.txt
 
 ## Usage
+### File structure
 ```
 .
 ├── project_root
@@ -33,22 +34,31 @@
 │   ├── src
 │   │   ├── data
 │   │   ├── model
-│   │   └── utils
+│   │   ├──  utils
 │   ├── scripts
 │   │   ├── train.py
 │   │   ├── generate_data.py
-│   │   └── train.sh
+│   │   ├──  train.sh
 │   ├── notebooks
 │   │   ├── EDA.ipynb
-│   │   └── model_evaluation.ipynb
+│   │   ├──  model_evaluation.ipynb
 │   ├── datasets
 │   │   ├── linear
 │   │   │   ├── linear_norm.py  # config file
 │   │   ├── flu
 │   ├── configs
+│   │   ├── linear_normal
+│   │   │   ├── base.py # some base setting across didfferent baselines
+│   │   │   ├── cnn_linear_normal_test.py # cnn working on the linear_normal generated data
+│   │   │   ├── gcn_linear_normal_train.py # gcn working on the linear_normal generated data
+│   │   │   ├── mlp_linear_norm.py # mlp working on the linear_normal generated data
 │   ├── env
 ```
 
+### Training
+```
+python scripts/train.py --cfg configs/linear_normal/mlp_linear_norm.py --gpu_ids [0]
+``` 
 
 ## Data
 Generation logic:
