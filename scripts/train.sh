@@ -1,0 +1,1 @@
+python train.py --cfg ../configs/linear_normal/gcn_linear_normal_test.py --gpu_ids [0]
