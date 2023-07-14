@@ -131,7 +131,7 @@ def gen_datasets():
             )
 
             datasets[pi]['train_data'] = train_data
-            datasets[pi]['test_data'] = train_data
+            datasets[pi]['test_data'] = test_data
 
     return datasets
 
@@ -147,11 +147,15 @@ class JointAutoencoder(nn.Module):
         self.encoder = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
             nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
             nn.Linear(hidden_dim, latent_dim),
         )
 
         self.decoder = nn.Sequential(
             nn.Linear(latent_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, input_dim),
         )
@@ -159,8 +163,8 @@ class JointAutoencoder(nn.Module):
         self.treatment = nn.Sequential(
             nn.Linear(latent_dim, hidden_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
+            # nn.Linear(hidden_dim, hidden_dim),
+            # nn.ReLU(),
             nn.Linear(hidden_dim, 1),
         )
 
@@ -202,7 +206,7 @@ def train_joint_autoencoder(
 
             x_hat, z, tau_hat = model(data)
             x_hat = x_hat.view(batch_size, -1, 3)
-            loss = criterion(x_hat, data) + criterion(tau_hat.squeeze(), labels)
+            loss = (criterion(tau_hat.squeeze(), labels)) #criterion(x_hat, data) + 
             loss.backward()
             optimizer.step()
 
@@ -228,7 +232,7 @@ if __name__ == "__main__":
     # initialize the joint autoencoder
     input_dim = 3 * n_samples
     latent_dim = 20
-    hidden_dim = 128
+    hidden_dim = 64
     num_epochs = 100
     lr = 1e-3
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
