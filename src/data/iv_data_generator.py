@@ -9,8 +9,8 @@ class LinearNormalDataGenerator:
     """
     def __init__(self, n_samples_range: list = [1000, 10000], iv_strength_range: list = [0.1, 1.0],
                        conf_strength_range: list = [0.1, 1.0], treat_effect_range: list = [-1.0, 1.0],
-                       conf_effect_range: list = [1.0, 5.0], beta_range: list = [-1.0, 1.0],
-                       base_seed: int = 42) -> None:
+                       conf_effect_range: list = [1.0, 5.0], error_scale: float = 1.0,
+                       beta_range: list = [-1.0, 1.0], base_seed: int = 42) -> None:
         """
         Initialize the data generator
 
@@ -20,6 +20,7 @@ class LinearNormalDataGenerator:
             conf_strength_range: range of confounder strength
             treat_effect_range: range of treatment effect
             conf_effect_range: range of confounder effect
+            error_scale: scale of error term
             beta_range: range of beta (bias term)
             base_seed: random seed
         """
@@ -28,6 +29,7 @@ class LinearNormalDataGenerator:
         self.conf_strength_range = conf_strength_range
         self.treat_effect_range = treat_effect_range
         self.conf_effect_range = conf_effect_range
+        self.error_scale = error_scale
         self.beta_range = beta_range
         self.base_seed = base_seed
 
@@ -51,11 +53,11 @@ class LinearNormalDataGenerator:
 
         # Generate treatment
         beta = np.random.uniform(self.beta_range[0], self.beta_range[1])
-        t = beta + iv_strength * z + conf_strength * c + np.random.normal(0, 1, size=n_samples)
+        t = beta + iv_strength * z + conf_strength * c + self.error_scale * np.random.normal(0, 1, size=n_samples)
 
         # Generate outcome
         beta = np.random.uniform(self.beta_range[0], self.beta_range[1])
-        y = beta + conf_effect * c + treat_effect * t + np.random.normal(0, 1, size=n_samples)
+        y = beta + conf_effect * c + treat_effect * t + self.error_scale * np.random.normal(0, 1, size=n_samples)
 
         data = np.concatenate([z.reshape(-1, 1), c.reshape(-1, 1), t.reshape(-1, 1), y.reshape(-1, 1)], axis=1)
         df = pd.DataFrame(data, columns=['instrument', 'confounder', 'treatment', 'outcome'])

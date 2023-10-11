@@ -105,7 +105,7 @@ class TabularDataModule(pl.LightningDataModule):
             train dataloader
         """
         trainset = DataFrameDataset(self.trainset)
-        return DataLoader(trainset, batch_size=self.train_batch_size, pin_memory=True, shuffle=True)
+        return DataLoader(trainset, batch_size=self.train_batch_size, num_workers=4, pin_memory=True, shuffle=True)
 
     def val_dataloader(self) -> DataLoader:
         """
@@ -115,7 +115,7 @@ class TabularDataModule(pl.LightningDataModule):
             validation dataloader
         """
         valset = DataFrameDataset(self.valset)
-        return DataLoader(valset, batch_size=self.val_batch_size, pin_memory=True, shuffle=False)
+        return DataLoader(valset, batch_size=self.val_batch_size, num_workers=4, pin_memory=True, shuffle=False)
 
     def test_dataloader(self) -> DataLoader:
         """
