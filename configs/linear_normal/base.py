@@ -1,5 +1,5 @@
 # model
-model = dict(name='MLP', hidden_channels=[1024, 1024], num_classes=1)
+model = dict(name='MLP', num_classes=1)
 
 # data
 data_dir = '/project/learning-ivs/data/linear'
