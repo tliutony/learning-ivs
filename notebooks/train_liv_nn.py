@@ -77,6 +77,8 @@ def gen_datasets():
     n_test_datasets = 2000
     iv_strs = np.round(np.linspace(0, 2, 11), 2) 
 
+    #iv_strs = np.round(np.linspace(0, 3, 16), 2)
+
     for pi in tqdm(iv_strs):
         datasets[pi] = {
             "data": [],
@@ -120,15 +122,18 @@ def gen_datasets():
             datasets[pi]['data_tup'].append((data_df.drop("C", axis='columns').values.astype('float32'), treat_effect))
 
             # convert datasets data and taus to torch dataloader
-            train_data = torch.utils.data.DataLoader(
-                datasets[pi]['data_tup'][:n_datasets - n_test_datasets],
-                batch_size=32,
-            )
+            # train_data = torch.utils.data.DataLoader(
+            #     datasets[pi]['data_tup'][:n_datasets - n_test_datasets],
+            #     batch_size=32,
+            # )
 
-            test_data = torch.utils.data.DataLoader(
-                datasets[pi]['data_tup'][n_test_datasets:],
-                batch_size=n_test_datasets,
-            )
+            # test_data = torch.utils.data.DataLoader(
+            #     datasets[pi]['data_tup'][n_test_datasets:],
+            #     batch_size=n_test_datasets,
+            # )
+
+            train_data = datasets[pi]['data_tup'][:n_datasets - n_test_datasets]
+            test_data = datasets[pi]['data_tup'][n_test_datasets:]
 
             datasets[pi]['train_data'] = train_data
             datasets[pi]['test_data'] = test_data
@@ -206,7 +211,8 @@ def train_joint_autoencoder(
 
             x_hat, z, tau_hat = model(data)
             x_hat = x_hat.view(batch_size, -1, 3)
-            loss = (criterion(tau_hat.squeeze(), labels)) #criterion(x_hat, data) + 
+            loss = criterion
+            loss = (criterion(tau_hat.squeeze(), labels) + criterion(x_hat, data))
             loss.backward()
             optimizer.step()
 
@@ -231,25 +237,49 @@ if __name__ == "__main__":
 
     # initialize the joint autoencoder
     input_dim = 3 * n_samples
-    latent_dim = 20
+    latent_dim = 9
     hidden_dim = 64
     num_epochs = 100
     lr = 1e-3
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+    # for pi in datasets.keys():
+    #     print(pi)
+    #     train_data = datasets[pi]['train_data']
+    #     test_data = datasets[pi]['test_data']
+    #     model = JointAutoencoder(input_dim, latent_dim, hidden_dim)
+    #     model = train_joint_autoencoder(
+    #         model,
+    #         train_data,
+    #         test_data,
+    #         num_epochs,
+    #         lr,
+    #         device,
+    #         verbose=True,
+    #     )
+    #     torch.save(model, f"joint_autoencoder_{pi}.pt")
+
+    train_list = []
+    test_list = []
+
     for pi in datasets.keys():
         print(pi)
-        train_data = datasets[pi]['train_data']
-        test_data = datasets[pi]['test_data']
-        model = JointAutoencoder(input_dim, latent_dim, hidden_dim)
-        model = train_joint_autoencoder(
-            model,
-            train_data,
-            test_data,
-            num_epochs,
-            lr,
-            device,
-            verbose=True,
-        )
-        torch.save(model, f"joint_autoencoder_{pi}.pt")
+        train_list.append(datasets[pi]['train_data'])
+        test_list.append(datasets[pi]['test_data'])
+    batch_size = 64
+    train_data = torch.utils.data.DataLoader(torch.utils.data.ConcatDataset(train_list), batch_size=batch_size, shuffle=True)
+    test_data = torch.utils.data.DataLoader(torch.utils.data.ConcatDataset(test_list), batch_size=10000, shuffle=True)
+
+    model = JointAutoencoder(input_dim, latent_dim, hidden_dim)
+    model = train_joint_autoencoder(
+        model,
+        train_data,
+        test_data,
+        num_epochs,
+        lr,
+        device,
+        verbose=True,
+        batch_size=batch_size,
+    )
+    torch.save(model, f"joint_autoencoder_all_l{latent_dim}_reconstruct.pt")
