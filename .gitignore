@@ -133,3 +133,5 @@ dmypy.json
 .pyre/
 
 .codebox/
+workdir/
+lightning_logs/

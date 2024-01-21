@@ -9,27 +9,27 @@
 
 ## Introduction
 
+Code repo for "Learning to efficiently use instrumental variables"[[Project gDoc](https://docs.google.com/document/d/1EODX4RHlNU0oUI7sM6cc-GS7Ku6-hx0oR8qe2OD8hYk/edit?usp=sharing)].
 
 ## Getting Started
 
-1. Access via a docker:
-   1. git clone https://github.com/tliu526/learning-ivs/tree/dev
-   2. cd learning-ivs/environment/podman && podman build -t liv .
-   3. podman run --name=liv_kernel --gpus all --ipc=host -dit -v /home/charon/project:/project -p 7777:33 liv
-   4. Now you are in the container, you can run the code in the container
-   More details about podman: [KordingLab/podman](https://github.com/KordingLab/wiki/tree/master/compute/containers])
+### Access via a container
+1. git clone https://github.com/tliu526/learning-ivs/tree/dev
+2. cd learning-ivs/environment/podman && podman build -t liv .
+3. podman run --name=liv_kernel --gpus all --ipc=host -dit -v /home/charon/project:/project -p 7777:33 liv
+4. Now you are in the container, you can run the code in the container
+More details about podman: [KordingLab/podman](https://github.com/KordingLab/wiki/tree/master/compute/containers])
 
-2. Access via a conda environment:
-   1. git clone https://github.com/tliu526/learning-ivs/tree/dev
-   2. conda env create -n liv python=3.9
-   3. cd cd learning-ivs/environment/conda
-   4. conda activate liv && pip install -r requirements.txt
+### Access via conda
+1. `git clone https://github.com/tliu526/learning-ivs/`
+2. `conda create -n liv python=3.9`
+3. `conda activate liv && pip install -r environment/conda/requirements.txt`
 
 ## Usage
+
 ### File structure
 ```
-.
-├── project_root
+├── learning-ivs
 │   ├── README.md
 │   ├── src
 │   │   ├── data
@@ -58,7 +58,7 @@
 
 ### Training
 ```
-python scripts/train.py --cfg configs/linear_normal/mlp_linear_norm.py --gpu_ids [0]
+python scripts/train.py --cfg configs/linear_normal/mlp_linear_normal_test.py --gpu_ids [0]
 ``` 
 
 ## Data

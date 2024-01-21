@@ -95,7 +95,7 @@ class MLP(pl.LightningModule):
     def _initialize_weights(self, model: nn.Module) -> None:
         for m in model.modules():
             if isinstance(m, torch.nn.Linear):
-                torch.nn.init.xavier_normal(m.weight)
+                torch.nn.init.xavier_normal_(m.weight)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.model(x)
