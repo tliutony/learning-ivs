@@ -46,6 +46,7 @@
 │   │   ├── linear
 │   │   │   ├── linear_norm.py  # config file
 │   │   ├── flu
+│   │   │   ├── flu_clean.dta  # Stata file from McDonald et al. 1992
 │   ├── configs
 │   │   ├── linear_normal
 │   │   │   ├── base.py # some base setting across didfferent baselines
