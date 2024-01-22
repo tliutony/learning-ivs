@@ -65,7 +65,7 @@ class MLP(pl.LightningModule):
     def __init__(self, input_channels: int, hidden_channels: list, num_classes: int, lr: float = 0.001,
                  weight_decay: float = 0.0) -> None:
         """
-        Initialize the MLP learner with Convolutional Kernels.
+        Initialize the MLP learner with feedforward layers.
         Args:
             input_channels: The number of input channels.
             hidden_channels: The number of hidden channels.
@@ -82,13 +82,17 @@ class MLP(pl.LightningModule):
         self.num_classes = num_classes
 
         # build the network
+        # Concatenate along the l dimension
         layers = [Rearrange('b l c -> (b l) c'),
-                  nn.BatchNorm1d(self.hidden_channels[0])]
+                  LinearBlock(self.input_channels, self.hidden_channels[0], nn.ReLU),
+                  nn.BatchNorm1d(self.hidden_channels[0])
+                  ]
         for i in range(len(self.hidden_channels) - 1):
             layers.append(
                 LinearBlock(self.hidden_channels[i], self.hidden_channels[i + 1], nn.ReLU)
             )
         layers.append(nn.Linear(self.hidden_channels[-1], self.num_classes))
+        print(layers)
         self.model = nn.Sequential(*layers)
         self._initialize_weights(self.model)
 
