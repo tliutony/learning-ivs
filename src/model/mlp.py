@@ -82,6 +82,7 @@ class MLP(pl.LightningModule):
         self.num_classes = num_classes
 
         # build the network
+        # b: batch size, l: n_samples, c: features
         # Concatenate along the l dimension
         layers = [Rearrange('b l c -> (b l) c'),
                   LinearBlock(self.input_channels, self.hidden_channels[0], nn.ReLU),
