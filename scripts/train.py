@@ -28,6 +28,7 @@ def setup():
     parser.add_argument('--work_dir', type=str, default='')
     args = parser.parse_args()
 
+
     cfg = Config.fromfile(args.cfg)
     # fix random seed (seed in config has higher priority )
     seed = cfg.seed if cfg.get('seed', None) is not None else args.seed

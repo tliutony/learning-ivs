@@ -74,5 +74,7 @@ class LinearNormalDataGenerator:
         """
         datasets = []
         for i in tqdm(range(n_datasets), desc="Generating data"):
-            datasets.append(self.generate())
+            dataset = self.generate()
+            datasets.append(dataset)
+
         return datasets
