@@ -229,7 +229,6 @@ class PoolingMLP(pl.LightningModule):
         ])
         self._initialize_weights(self.model)
 
-
     def _initialize_weights(self, model: nn.Module) -> None:
         for m in model.modules():
             if isinstance(m, torch.nn.Linear):
