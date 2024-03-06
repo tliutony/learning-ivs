@@ -4,7 +4,7 @@ from glob import glob
 from copy import deepcopy
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader, Dataset
-from ..data import iv_data_generator as generators
+from ..data import lin_norm_generator as generators
 from ..utils import Config
 
 
