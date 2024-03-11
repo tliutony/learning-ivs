@@ -1,6 +1,11 @@
-FROM pytorchlightning/pytorch_lightning:base-cuda-py3.9-torch1.13-cuda11.6.1
-USER root
+ARG PYTHON="3.9"
+ARG PYTORCH="1.12"
+ARG CUDA="11.6.1"
+
+# FROM pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
+FROM pytorchlightning/pytorch_lightning:base-cuda-py${PYTHON}-torch${PYTORCH}-cuda${CUDA}
 RUN apt update && apt install ssh -y
+RUN apt-get install git
 
 RUN apt-get update
 RUN apt-get update && apt-get -y upgrade
@@ -15,9 +20,9 @@ RUN echo "root:1234567" | chpasswd
 # Necessary configuration for sshd
 RUN mkdir /var/run/sshd
 
-# COPY requirements.txt /requirements.txt
+COPY requirements.txt /requirements.txt
 RUN pip install --upgrade pip
-# RUN pip install -r /requirements.txt
+RUN pip install -r /requirements.txt
 RUN pip install jupyterlab
 
 WORKDIR /
