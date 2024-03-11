@@ -1,6 +1,7 @@
 """Abstract class for data generators."""
 
 from abc import abstractmethod, ABC
+from tqdm import tqdm
 
 class DataGenerator(ABC):
     @abstractmethod

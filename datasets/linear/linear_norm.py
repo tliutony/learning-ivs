@@ -18,4 +18,4 @@ n_val = 0.1  # proportion of data to use for validation
 n_test = 0.1  # proportion of data to use for testing
 
 # work directory
-work_dir = '/project/learning-ivs/data/linear'  # directory to save data
+work_dir = '/project/learning-ivs/data/linear_norm'  # directory to save data
