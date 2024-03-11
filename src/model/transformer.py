@@ -7,44 +7,71 @@ import copy
 # %%
 class TransformerEncoder(nn.Module):
     """
-    Transformer encoder - consists of `n_blocks` repeated EncoderBlocks.
-
-    n_layers: number of encoder layers
+    Transformer encoder - consists of `n_blocks` EncoderBlocks in series.
     """
-    def __init__(self, n_blocks, n_heads, emb_dim):
+    def __init__(self, n_blocks, n_heads, d_model, d_hidden, dropout=0.1):
+        """
+        n_blocks: number of encoder blocks
+        n_heads: number of attention heads in parallel for each MultiHeadAttention sublayer
+        d_model: dimension of data throughout attention mechanism (see EncoderBlock for more details)
+        d_hidden: dimension of hidden layer in MLP sublayer for each EncoderBlock
+        """
         super().__init__()
-        self.encoder = TransformerEncoderLayer(n_heads, emb_dim)
-        self.layers = nn.Sequential([copy.deepcopy(self.encoder) for _ in range(n_layers)])
+        self.encoder = EncoderBlock(n_heads, d_model, d_hidden, dropout)
+        # fix this, check if deep copy on an attribute is appropriate
+        self.layers = nn.Sequential([copy.deepcopy(self.encoder) for _ in range(n_blocks)])
 
     def forward(self, x):
         # x is (batch_size, seq_len, emb_dim)
         x = self.layers(x)
+        return x
 
 # %%
 class EncoderBlock(nn.Module):
     """
-    Single encoder block in a transformer. Consists of two sublayers, a multi-head attention layer and a fully connected linear layer (or MLP with nonlinearities?). Layer Norm, dropout, then summation with the input to the sublayer as a residual is done in sequence to the output of each sublayer. 
-    TODO: CHECK THIS
+    Single encoder block in a transformer. Consists of two sublayers, a multi-head attention layer and a MLP with one hidden layer. Residual connections, Layer Norm, and Dropout are used for each sublayer, in sequence shown below:
+
+    input --> LayerNorm --> SubLayer --> Dropout --> (+) --> out
+      |_______________________________________________|^
+    
     """
-    def __init__(self, n_heads:int, d_model, d_hidden, dropout=0.1) -> None:
+    def __init__(self, n_heads:int, d_model:int, d_hidden:int, dropout=0.1) -> None:
         """
-        n_heads: 
+        n_heads: number of attention heads working in parallel
+        d_model: dimension of inputs and outputs, as well as of intermediate query, key, and value vectors in attention; the input and output dimensions are set to be the same primarily to ensure residual connections work properly
+        d_hidden: dimension of hidden layer in MLP
+        dropout: dropout probability in dropout layer
         """
         super().__init__()
-        self.mh_attn = MultiHeadAttentionBlock(n_heads, in_dim=d_model, qk_dim=d_model, v_dim=d_model, out_dim=d_model, attn_dropout=dropout)
-        self.mlp = nn.Sequential([nn.Linear(d_model, d_hidden), nn.ReLU(), nn.Linear()]) # single linear layer? or MLP?
-        self.attn_dropout, self.mlp_dropout = nn.Dropout(dropout), nn.Dropout(dropout)
+        self.attn_norm = nn.LayerNorm(d_model)
+        # assuming v_dim = qk_dim, enforces number of parameters remains unchanged with number of heads (for comparisons)
+        assert d_model % n_heads == 0
+        qk_dim, v_dim = d_model // n_heads, d_model // n_heads
+        self.mh_attn = MultiHeadAttentionBlock(n_heads, in_dim=d_model, qk_dim=qk_dim, v_dim=v_dim, out_dim=d_model, attn_dropout=dropout)
+        self.attn_dropout = nn.Dropout(dropout)
+
+        self.mlp_norm = nn.LayerNorm(d_model)
+        self.mlp = nn.Sequential(nn.Linear(d_model, d_hidden),
+                                 nn.ReLU(),
+                                 nn.Linear(d_hidden, d_model))
+        self.mlp_dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-        # x is (batch_size, seq_len, in_dim)
-        # maybe should include functionality for different types of attention - for now we'll just assume self-attention
-        z, attn = self.mh_attn(x, x, x) # out is (bs, seq, out_dim)
-        z = self.dropout1(x)
-        z = z + x # needs input and output of attention to have the same size, i.e in_dim = out_dim???
-        a = self.fc(z)
-        a = self.dropout2(a)
-        a = a + z
-        # Layer norm?
+        """
+        input: x (batch_size, max_seq_len, d_model)
+        output: a (batch_size, max_seq_len, d_model)
+        """
+        # MultiHeadAttention sublayer
+        z = self.attn_norm(x)
+        z, _ = self.mh_attn(x, x, x) # out is (bs, seq, d_model)
+        z = x + self.attn_dropout(z) 
+        # TODO: disambiguate from the attn dropout within the attention block??
+
+        # MLP sublayer
+        a = self.mlp_norm(z)
+        a = self.mlp(a)
+        a = z + self.mlp_dropout(a)
+        return a
 
 
 
@@ -55,8 +82,7 @@ class MultiHeadAttentionBlock(nn.Module):
     """
     def __init__(self, n_heads, in_dim, qk_dim, v_dim, out_dim, attn_dropout=0.1) -> None:
         super().__init__()
-        # assuming v_dim = qk_dim, enforces number of parameters remains unchanged with number of heads (for ablation/comparisons)
-        assert in_dim == n_heads * qk_dim
+
         self.n_heads = n_heads
         self.qk_dim = qk_dim
         self.v_dim = v_dim
@@ -67,13 +93,12 @@ class MultiHeadAttentionBlock(nn.Module):
         self.fc = nn.Linear(v_dim * n_heads, out_dim)
         self.attn_dropout = nn.Dropout(attn_dropout)
 
-    def forward(self, queries, keys, values) -> torch.tensor:
+    def forward(self, queries, keys, values, mask=None) -> torch.tensor:
         """
         In self attention, queries = keys = values = x
         """
-        #TODO: masking???
         # x is (batch_size, seq_len, emb_dim)
-        bs, seq, _ = queries.shape # batch_size, seq_len
+        bs, seq, _ = queries.shape # batch_size, seq_len (where seq_len is max sequence length of all sequences in batch)
         n_heads = self.n_heads
         qk_dim = self.qk_dim
         v_dim = self.v_dim
@@ -85,6 +110,9 @@ class MultiHeadAttentionBlock(nn.Module):
 
         # get raw attention scores
         attn = Q @ K.transpose(2,3) # (bs, n_heads, seq, seq)
+        # mask must be generated by padding function, and should not broadcast for sequences of different lengths (i.e should be same size as attn)
+        if mask is not None:
+            attn.masked_fill(~mask, -1e9) # fills all positions corresponding to 1s in mask with very negative numbers
 
         # normalize
         d_k = K.shape[-1]
@@ -103,40 +131,5 @@ class MultiHeadAttentionBlock(nn.Module):
         out = self.fc(Z) # (bs, seq, out_dim)
         return out, attn 
         # maybe look at why we return attention too?
-
-
-
-
-
-        
-
-
-
-# class SelfAttentionBlock(nn.Module):
-#     """
-#     Single attention block. Transforms input through three linear transforms to produce query, key, value
-#     data. Takes pairwise inner products between queries and keys, then normalize via softmax. 
-
-#     For simplicity, I've coded it up so that the query/key vector dimensions = value vector dimension
-#     """
-#     def __init__(self, emb_dim, qkv_dim) -> None:
-#         super().__init__()
-#         # x is (batch_size, seq_len, emb_dim)
-#         self.W_q = nn.Parameter(torch.zeros_like(emb_dim, qkv_dim))
-#         self.W_k = nn.Parameter(torch.zeros_like(emb_dim, qkv_dim))
-#         self.W_v = nn.Parameter(torch.zeros_like(emb_dim, qkv_dim))
-
-#     def forward(self, x) -> torch.tensor:
-#         """
-#         x is (batch_size, seq_len, emb_dim)
-#         returns: (batch_size, seq_len, qkv_dim) scaled dot-product attention-reweighted inputs
-#         """
-#         d_k = self.W_q.shape[1]
-#         Q, K, V = x @ self.W_q, x @ self.W_k, x @ self.W_v  # (bs, seq, qkv_dim)
-#         # give these better names
-#         raw_attn = torch.bmm(Q, K.mT) # (bs, seq, seq)
-#         norm_attn = torch.softmax(raw_attn/np.sqrt(d_k), dim=1) # normalize, shape unchanged
-#         head = torch.bmm(norm_attn, V) # (bs, seq, qkv_dim)
-#         return head
 
 # %%
