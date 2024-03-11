@@ -5,7 +5,7 @@ from copy import deepcopy
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader, Dataset
 
-import src.data as data_generators #lin_norm_generator as generators
+import src.data as data_generators  # lin_norm_generator as generators
 from ..utils import Config
 
 
@@ -122,7 +122,11 @@ class TabularDataModule(pl.LightningDataModule):
         """
         trainset = DataFrameDataset(self.trainset)
         return DataLoader(
-            trainset, batch_size=self.train_batch_size, pin_memory=True, shuffle=True
+            trainset,
+            batch_size=self.train_batch_size,
+            num_workers=4,
+            pin_memory=True,
+            shuffle=True,
         )
 
     def val_dataloader(self) -> DataLoader:
@@ -134,7 +138,11 @@ class TabularDataModule(pl.LightningDataModule):
         """
         valset = DataFrameDataset(self.valset)
         return DataLoader(
-            valset, batch_size=self.val_batch_size, pin_memory=True, shuffle=False
+            valset,
+            batch_size=self.val_batch_size,
+            num_workers=4,
+            pin_memory=True,
+            shuffle=False,
         )
 
     def test_dataloader(self) -> DataLoader:

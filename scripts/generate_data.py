@@ -8,7 +8,7 @@ import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-import src.data.iv_data_generator as generators
+import src.data.lin_norm_generator as generators
 from src.utils import Config
 
 

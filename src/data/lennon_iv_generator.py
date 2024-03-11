@@ -1,4 +1,5 @@
 """Defines the LennonIVGenerator class."""
+
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -83,7 +84,7 @@ class LennonIVGenerator(nn.Module, DataGenerator):
             @ self.instrument_coefficients
         )
         C = torch.sqrt(instrument_strength / (instrument_strength * A + A))
-        #print(f"C: {C}")
+        # print(f"C: {C}")
         self.instrument_coefficients = C * self.instrument_coefficients
         self.sigma_v = torch.sqrt(
             1
@@ -93,19 +94,22 @@ class LennonIVGenerator(nn.Module, DataGenerator):
                 @ self.instrument_coefficients
             )
         )
-        #print(self.sigma_v)
+        # print(self.sigma_v)
         self.sigma_y = 1
 
         # TODO need to ensure that confounder covariance is positive definite,
         # Lennon et al. 2022 doesn't appear to guarantee this...
-        #self.sigma_v += 0.5 # current hack to get things positive definite
+        # self.sigma_v += 0.5 # current hack to get things positive definite
         self.confound_covariance = torch.Tensor(
             [
                 [self.sigma_y**2, self.sigma_y * self.sigma_v],
-                [self.sigma_y * self.sigma_v, self.sigma_v**2 + 0.5], # current hack to get things positive definite
+                [
+                    self.sigma_y * self.sigma_v,
+                    self.sigma_v**2 + 0.5,
+                ],  # current hack to get things positive definite
             ]
         )
-        #print(self.confound_covariance)
+        # print(self.confound_covariance)
         self.confound_sampler = MultivariateNormal(
             torch.zeros(2), self.confound_covariance
         )

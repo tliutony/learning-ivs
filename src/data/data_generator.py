@@ -3,6 +3,7 @@
 from abc import abstractmethod, ABC
 from tqdm import tqdm
 
+
 class DataGenerator(ABC):
     @abstractmethod
     def generate(self, *args, **kwargs) -> dict:
