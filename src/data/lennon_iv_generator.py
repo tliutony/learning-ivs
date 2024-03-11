@@ -98,8 +98,7 @@ class LennonIVGenerator(nn.Module, DataGenerator):
         self.sigma_y = 1
 
         # TODO need to ensure that confounder covariance is positive definite,
-        # Lennon et al. 2022 doesn't appear to guarantee this...
-        # self.sigma_v += 0.5 # current hack to get things positive definite
+        # Lennon et al. 2022/Belloni et al. 2012 don't appear to guarantee this...
         self.confound_covariance = torch.Tensor(
             [
                 [self.sigma_y**2, self.sigma_y * self.sigma_v],
