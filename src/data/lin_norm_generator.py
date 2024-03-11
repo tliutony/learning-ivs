@@ -2,8 +2,9 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from ..data.data_generator import DataGenerator
 
-class LinearNormalDataGenerator:
+class LinearNormalDataGenerator(DataGenerator):
     """
     Data generator for generating linear multivariate normal data according to classical IV graph (Z, T, C, Y)
     """
@@ -61,20 +62,3 @@ class LinearNormalDataGenerator:
         df = pd.DataFrame(data, columns=['instrument', 'confounder', 'treatment', 'outcome'])
 
         return {'df': df, 'treatment_effect': treat_effect, 'n_samples': n_samples}
-
-    def generate_all(self, n_datasets: int = 10000) -> list:
-        """
-        Generate multiple datasets
-
-        Args:
-            n_datasets: number of datasets to generate
-
-        Returns:
-            datasets: list of datasets
-        """
-        datasets = []
-        for i in tqdm(range(n_datasets), desc="Generating data"):
-            dataset = self.generate()
-            datasets.append(dataset)
-
-        return datasets

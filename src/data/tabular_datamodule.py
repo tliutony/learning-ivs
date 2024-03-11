@@ -132,7 +132,6 @@ class DataFrameDataset(Dataset):
     """
     Dataset for dataframe data
     """
-    keys = ['instrument', 'treatment', 'outcome']
 
     def __init__(self, dataset: list[tuple]) -> None:
         """
@@ -155,7 +154,8 @@ class DataFrameDataset(Dataset):
             x, y
         """
         df, y = self.dataset[idx]
-        x = torch.tensor(df[self.keys].to_numpy(), dtype=torch.float32)
+        # this makes the assumption that any metadata has been removed from df
+        x = torch.tensor(df.to_numpy(), dtype=torch.float32)
         y = torch.tensor(y, dtype=torch.float32)
         return x, y
 
