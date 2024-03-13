@@ -20,9 +20,9 @@ class TransformerEncoder(nn.Module):
         self.encoder = EncoderBlock(n_heads, d_model, d_hidden, dropout)
         self.layers = nn.Sequential(*[copy.deepcopy(self.encoder) for _ in range(n_blocks)])
 
-    def forward(self, x):
+    def forward(self, x, padding_mask=None):
         # x is (batch_size, seq_len, emb_dim)
-        x = self.layers(x)
+        x = self.layers(x, padding_mask)
         return x
 
 # %%
