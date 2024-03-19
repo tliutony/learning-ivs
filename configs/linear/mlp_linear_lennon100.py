@@ -1,7 +1,7 @@
 _base_ = './base.py'
 
 # model
-model = dict(name='MLP', input_channels=3, hidden_channels=[64, 128, 64], num_classes=1)
+model = dict(name='MLP', input_channels=102, hidden_channels=[64, 128, 64], num_classes=1)
 
 # data
 work_dir = './workdir'
@@ -12,7 +12,7 @@ val_batch_size = 2048
 test_batch_size = 2048
 
 # optimization
-max_epochs = 100
+max_epochs = 5
 lr = 0.01
 weight_decay = 0.0001
 
