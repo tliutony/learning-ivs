@@ -3,7 +3,7 @@ _base_ = './base.py'
 # data
 # activate online data generation
 data_dir = None
-data_cfg = '/project/learning-ivs/datasets/linear/linear_norm.py'
+data_cfg = 'datasets/linear/linear_norm.py'
 train_batch_size = 512
 val_batch_size = 512
 test_batch_size = 512
