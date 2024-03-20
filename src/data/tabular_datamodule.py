@@ -1,4 +1,5 @@
 import torch
+import re
 import pandas as pd
 from glob import glob
 from copy import deepcopy
@@ -105,8 +106,13 @@ class TabularDataModule(pl.LightningDataModule):
         parquets = []
         data_dir = f"{self.data_dir}/{stage}"
         for file_name in glob(f"{data_dir}/*.parquet"):
+            #print(file_name)
+            #print(file_name.split("/")[-1].split("-")[1])
+            # TODO temp fix, we need a more robust way to do this
+            m = re.match(".*treatment_effect=(.*)-n.*", file_name)
             treatment_effect = float(
-                file_name.split("/")[-1].split("-")[1].strip("treatment_effect=")
+                m.groups()[0]
+                #file_name.split("/")[-1].split("-")[1].strip("treatment_effect=")
             )
             # n_samples = file_name.split('/')[-1].split('-')[2].strip('n_samples=')
             df = pd.read_parquet(file_name)
