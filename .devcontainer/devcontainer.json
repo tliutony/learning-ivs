@@ -1,0 +1,27 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/alpine
+{	"name": "Learning-IVs",
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"image": "mcr.microsoft.com/devcontainers/python:1-3.11-buster",
+	"features": {
+		"ghcr.io/devcontainers/features/python:1": {}
+	},
+	"customizations": {
+        "vscode": {
+            "extensions": [
+				"ms-toolsai.jupyter", 
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"lfs.vscode-emacs-friendly"
+			]
+        }
+    },
+	"runArgs": [
+		"--userns=keep-id"
+	],
+	//"postCreateCommand": "pip3 install --user -r requirements.txt",
+	"remoteUser": "vscode",
+	"containerEnv": {
+		"HOME": "/home/vscode"
+	}
+}

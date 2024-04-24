@@ -8,7 +8,7 @@ import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-import src.data.iv_data_generator as generators
+import src.data as data_generators
 from src.utils import Config
 
 
@@ -88,10 +88,10 @@ def generate_data_from_config(cfg_path: str, work_dir: str = '') -> None:
 
     # Initialize data generator
     generator = cfg.generation.pop('generator')
-    if hasattr(generators, generator):
-        generator = getattr(generators, generator)(**cfg.generation)
+    if hasattr(data_generators, generator):
+        generator = getattr(data_generators, generator)(**cfg.generation)
     else:
-        raise NotImplementedError(f"Generator {cfg.generation.generator} is not implemented")
+        raise NotImplementedError(f"Generator {generator} is not implemented")
 
     # Data generation
     datasets = generator.generate_all()

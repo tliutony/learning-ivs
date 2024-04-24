@@ -131,3 +131,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+.codebox/
+workdir/
+lightning_logs/
+checkpoints
+*tmp*
