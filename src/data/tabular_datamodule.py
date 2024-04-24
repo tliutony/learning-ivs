@@ -16,11 +16,11 @@ class TabularDataModule(pl.LightningDataModule):
 
     def __init__(
         self,
-        data_dir: [str, None],
+        data_dir: str | None,
         train_batch_size: int = 32,
         val_batch_size: int = 64,
         test_batch_size: int = 64,
-        data_cfg: [str, None] = None,
+        data_cfg = None,
     ) -> None:
         """
         Initialize the csv data module
