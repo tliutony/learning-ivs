@@ -136,3 +136,4 @@ dmypy.json
 workdir/
 lightning_logs/
 checkpoints
+*tmp*

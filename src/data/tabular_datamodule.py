@@ -4,7 +4,8 @@ from glob import glob
 from copy import deepcopy
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader, Dataset
-from ..data import lin_norm_generator as generators
+
+import src.data as data_generators  # lin_norm_generator as generators
 from ..utils import Config
 
 
@@ -13,8 +14,14 @@ class TabularDataModule(pl.LightningDataModule):
     DataModule for loading existed CSV data
     """
 
-    def __init__(self, data_dir: [str, None], train_batch_size: int = 32, val_batch_size: int = 64,
-                 test_batch_size: int = 64, data_cfg: [str, None] = None) -> None:
+    def __init__(
+        self,
+        data_dir: str | None,
+        train_batch_size: int = 32,
+        val_batch_size: int = 64,
+        test_batch_size: int = 64,
+        data_cfg = None,
+    ) -> None:
         """
         Initialize the csv data module
 
@@ -27,18 +34,25 @@ class TabularDataModule(pl.LightningDataModule):
         super().__init__()
         self.save_hyperparameters()
         if data_dir is None and data_cfg is None:
-            raise ValueError(f'data_cfg is not specified when online generation is True')
+            raise ValueError(
+                f"data_cfg is not specified when online generation is True"
+            )
         elif data_dir is None and data_cfg is not None:
             # load data config and setup online generation
             self.online_generation = True
             data_cfg = Config.fromfile(data_cfg)
-            generator = data_cfg.generation.pop('generator')
-            self.online_generator = getattr(generators, generator)(**data_cfg.generation)
+            generator = data_cfg.generation.pop("generator")
+            self.online_generator = getattr(data_generators, generator)(
+                **data_cfg.generation
+            )
+            print(self.online_generator)
         elif data_dir is not None and data_cfg is None:
             # only use offline data if data_cfg is not specified
             self.online_generation = False
         else:
-            raise ValueError(f'Only offline or online generation can be specified, not both')
+            raise ValueError(
+                f"Only offline or online generation can be specified, not both"
+            )
 
         self.data_dir = data_dir
         self.train_batch_size = train_batch_size
@@ -53,11 +67,11 @@ class TabularDataModule(pl.LightningDataModule):
         Args:
             stage: stage to setup
         """
-        if stage == 'fit' or stage is None:
-            self.trainset = self.load_data('train')
-            self.valset = self.load_data('val')
-        if stage == 'test' or stage is None:
-            self.testset = self.load_data('test')
+        if stage == "fit" or stage is None:
+            self.trainset = self.load_data("train")
+            self.valset = self.load_data("val")
+        if stage == "test" or stage is None:
+            self.testset = self.load_data("test")
 
     def load_data(self, stage: str) -> pd.DataFrame:
         """
@@ -69,12 +83,12 @@ class TabularDataModule(pl.LightningDataModule):
             dataframe of all datasets
         """
         if self.online_generation:
-            n_datasets = int(self.data_cfg.get(f'n_{stage}') * self.data_cfg.n_datasets)
+            n_datasets = int(self.data_cfg.get(f"n_{stage}") * self.data_cfg.n_datasets)
             datasets = self.online_generator.generate_all(n_datasets)
             parquets = []
             for dataset in datasets:
-                df = dataset['df']
-                parquets.append((df, dataset['treatment_effect']))
+                df = dataset["df"]
+                parquets.append((df, dataset["treatment_effect"]))
         else:
             parquets = self.load_parquets_to_df(stage)
         return parquets
@@ -89,9 +103,11 @@ class TabularDataModule(pl.LightningDataModule):
             dataframe of all parquets
         """
         parquets = []
-        data_dir = f'{self.data_dir}/{stage}'
-        for file_name in glob(f'{data_dir}/*.parquet'):
-            treatment_effect = float(file_name.split('/')[-1].split('-')[1].strip('treatment_effect='))
+        data_dir = f"{self.data_dir}/{stage}"
+        for file_name in glob(f"{data_dir}/*.parquet"):
+            treatment_effect = float(
+                file_name.split("/")[-1].split("-")[1].strip("treatment_effect=")
+            )
             # n_samples = file_name.split('/')[-1].split('-')[2].strip('n_samples=')
             df = pd.read_parquet(file_name)
             parquets.append((df, treatment_effect))
@@ -105,7 +121,13 @@ class TabularDataModule(pl.LightningDataModule):
             train dataloader
         """
         trainset = DataFrameDataset(self.trainset)
-        return DataLoader(trainset, batch_size=self.train_batch_size, num_workers=4, pin_memory=True, shuffle=True)
+        return DataLoader(
+            trainset,
+            batch_size=self.train_batch_size,
+            num_workers=4,
+            pin_memory=True,
+            shuffle=True,
+        )
 
     def val_dataloader(self) -> DataLoader:
         """
@@ -115,7 +137,13 @@ class TabularDataModule(pl.LightningDataModule):
             validation dataloader
         """
         valset = DataFrameDataset(self.valset)
-        return DataLoader(valset, batch_size=self.val_batch_size, num_workers=4, pin_memory=True, shuffle=False)
+        return DataLoader(
+            valset,
+            batch_size=self.val_batch_size,
+            num_workers=4,
+            pin_memory=True,
+            shuffle=False,
+        )
 
     def test_dataloader(self) -> DataLoader:
         """
@@ -125,14 +153,19 @@ class TabularDataModule(pl.LightningDataModule):
             test dataloader
         """
         testset = DataFrameDataset(self.testset)
-        return DataLoader(testset, batch_size=self.test_batch_size, num_workers=4, pin_memory=True, shuffle=False)
+        return DataLoader(
+            testset,
+            batch_size=self.test_batch_size,
+            num_workers=4,
+            pin_memory=True,
+            shuffle=False,
+        )
 
 
 class DataFrameDataset(Dataset):
     """
     Dataset for dataframe data
     """
-    keys = ['instrument', 'treatment', 'outcome']
 
     def __init__(self, dataset: list[tuple]) -> None:
         """
@@ -155,7 +188,8 @@ class DataFrameDataset(Dataset):
             x, y
         """
         df, y = self.dataset[idx]
-        x = torch.tensor(df[self.keys].to_numpy(), dtype=torch.float32)
+        # this makes the assumption that any metadata has been removed from df
+        x = torch.tensor(df.to_numpy(), dtype=torch.float32)
         y = torch.tensor(y, dtype=torch.float32)
         return x, y
 
