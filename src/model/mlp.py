@@ -19,7 +19,8 @@ class LinearBlock(torch.nn.Module):
         super(LinearBlock, self).__init__()
         self.linear = nn.Linear(in_features, out_features)
         self.activation = activation()
-        self.batch_norm = nn.BatchNorm1d(out_features)
+        self.batch_norm = nn.LayerNorm(out_features)
+        self.dropout = nn.Dropout(0.1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -30,7 +31,7 @@ class LinearBlock(torch.nn.Module):
         Returns:
             The output of the linear block.
         """
-        return self.activation(self.batch_norm(self.linear(x)))
+        return self.dropout(self.activation(self.batch_norm(self.linear(x))))
 
 
 class AttentionBlock(torch.nn.Module):
@@ -84,9 +85,9 @@ class MLP(pl.LightningModule):
         # build the network
         # b: batch size, l: n_samples, c: features
         # Concatenate along the l dimension
-        layers = [Rearrange('b l c -> (b l) c'),
-                  LinearBlock(self.input_channels, self.hidden_channels[0], nn.ReLU),
-                  nn.BatchNorm1d(self.hidden_channels[0])
+        layers = [Rearrange('b l c -> b (l c)'),
+                  LinearBlock(self.input_channels*1000, self.hidden_channels[0], nn.ReLU),
+                  #nn.BatchNorm1d(self.hidden_channels[0])
                   ]
         for i in range(len(self.hidden_channels) - 1):
             layers.append(
@@ -103,7 +104,10 @@ class MLP(pl.LightningModule):
                 torch.nn.init.xavier_normal_(m.weight)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.model(x)
+        #print(f"x: {x.shape}")
+        out = self.model(x)
+        #print(f"out: {out.shape}")
+        return out
 
     def training_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:
         return self.step(batch, 'train')
@@ -127,7 +131,7 @@ class MLP(pl.LightningModule):
             The output of the network.
         """
         x, y = batch
-        y_hat = self(x)
+        y_hat = self(x).squeeze()
         loss = nn.MSELoss()(y_hat, y)
         self.log(f'{stage}_loss', loss, prog_bar=True)
         return loss

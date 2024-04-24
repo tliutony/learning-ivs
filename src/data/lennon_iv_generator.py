@@ -30,13 +30,13 @@ class LennonIVGenerator(nn.Module, DataGenerator):
 
     def __init__(
         self,
-        tau: float,
         max_vars: int,
         n_instruments: int,
         instrument_strength: float,  # this currently translates to mu^2/n_samples
         instrument_cov_base: float = 0.5,
         tau_activation: str = "identity",
         instrument_activation: str = "identity",
+        tau_range: list = [-5.0, 5.0],
         n_samples_range: list = [1000, 10000],
         base_seed: int = 42,
         # TODO add controls as well
@@ -48,6 +48,7 @@ class LennonIVGenerator(nn.Module, DataGenerator):
         super().__init__()
 
         self.n_samples_range = n_samples_range
+        self.tau_range = tau_range
         self.base_seed = base_seed
         torch.manual_seed(base_seed)
 
@@ -113,7 +114,6 @@ class LennonIVGenerator(nn.Module, DataGenerator):
             torch.zeros(2), self.confound_covariance
         )
 
-        self.tau = tau
         self.control_str = control_str
 
         self.activations = {
@@ -130,7 +130,7 @@ class LennonIVGenerator(nn.Module, DataGenerator):
         self.instrument_activation = self.activations[instrument_activation]
         # self.confounder_activation = self.activations[confounder_activation]
 
-    def forward(self):
+    def forward(self, tau: float):
         """Generates a single data sample"""
 
         # noise sample [\epislon_y, \epeilson_v] according to confounder covariance
@@ -150,14 +150,14 @@ class LennonIVGenerator(nn.Module, DataGenerator):
         )
         treat = self.instrument_activation(torch.t(pi) @ instrument_sample) + epsilon_v
 
-        outcome = self.tau * self.tau_activation(treat) + torch.randn(1) + epislon_y
+        outcome = tau * self.tau_activation(treat) + torch.randn(1) + epislon_y
 
         # return data matrix of T, Y, Z
         return torch.cat([torch.Tensor([treat, outcome]), instrument_sample])
 
-    def batch(self, batch_size: int):
+    def batch(self, tau: float, batch_size: int):
         """Generate batch of examples"""
-        return torch.stack([self.forward() for _ in range(batch_size)])
+        return torch.stack([self.forward(tau) for _ in range(batch_size)])
 
     def generate(self) -> dict:
         """
@@ -168,9 +168,11 @@ class LennonIVGenerator(nn.Module, DataGenerator):
         n_samples = int(
             np.random.uniform(self.n_samples_range[0], self.n_samples_range[1])
         )
-        data = self.batch(n_samples)
+        tau = np.random.uniform(self.tau_range[0], self.tau_range[1])
+        data = self.batch(tau, n_samples)
+        
         return {
-            "df": pd.DataFrame(data.numpy()),
-            "treatment_effect": self.tau,
+            "df": pd.DataFrame(data.numpy(), columns=["T", "Y"] + [f"Z{i}" for i in range(self.n_instruments)]),
+            "treatment_effect": tau,
             "n_samples": n_samples,
         }
