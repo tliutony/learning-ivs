@@ -35,6 +35,7 @@ if __name__ == "__main__":
         cfg.work_dir = args.work_dir
 
     # evaluate models
+    # TODO parallelize this
     for model_name in cfg.models:
         print(f"benchmarking {model_name}...")
         if model_name is not None:

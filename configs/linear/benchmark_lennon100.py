@@ -7,5 +7,6 @@ data_dir = './tmp_lennon100'
 
 models = [
     "TSLS",
-    #"LIML"
+    "LIML",
+    "OLS"
 ]
