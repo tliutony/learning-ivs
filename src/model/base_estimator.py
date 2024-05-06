@@ -1,4 +1,7 @@
-"Abstract class for existing IV estimators."
+"""
+Abstract class for existing IV estimators.
+"""
+import pandas as pd
 
 from abc import abstractmethod, ABC
 from tqdm import tqdm
@@ -15,7 +18,6 @@ class BaseEstimator(ABC):
         """
         pass
 
-    @abstractmethod
     def estimate_all(self, datasets: list) -> list:
         """Estimate the treatment effect for multiple datasets.
 
@@ -23,10 +25,16 @@ class BaseEstimator(ABC):
             n_datasets: number of datasets to estimate
 
         Returns:
-            list of estimates
+            pd.DataFrame: results of the estimation
         """        
         results = []
-        for dataset in tqdm(datasets, desc="Tau estimation"):
-            results.append(self.estimate(**dataset))
+        for idx, (dataset, ground_truth_tau) in enumerate(tqdm(datasets, desc="tau estimation")):
+            # pull X data, if the columns exist
+            X_data = dataset.loc[:, dataset.columns.str.startswith('X')]
+            Z_data = dataset.loc[:, dataset.columns.str.startswith('Z')]
+            result = self.estimate(T=dataset['T'], X=X_data, Z=Z_data, Y=dataset['Y'])
+            result['ground_truth'] = ground_truth_tau
+            result['idx'] = idx
+            results.append(result)
 
-        return results
+        return pd.DataFrame(results)

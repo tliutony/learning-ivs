@@ -137,3 +137,4 @@ workdir/
 lightning_logs/
 checkpoints
 *tmp*
+results/

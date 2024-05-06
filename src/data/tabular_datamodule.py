@@ -5,6 +5,7 @@ from glob import glob
 from copy import deepcopy
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader, Dataset
+from tqdm import tqdm
 
 import src.data as data_generators  # lin_norm_generator as generators
 from ..utils import Config
@@ -17,7 +18,7 @@ class TabularDataModule(pl.LightningDataModule):
 
     def __init__(
         self,
-        data_dir: str | None,
+        data_dir: str,
         train_batch_size: int = 32,
         val_batch_size: int = 64,
         test_batch_size: int = 64,
@@ -105,7 +106,7 @@ class TabularDataModule(pl.LightningDataModule):
         """
         parquets = []
         data_dir = f"{self.data_dir}/{stage}"
-        for file_name in glob(f"{data_dir}/*.parquet"):
+        for file_name in tqdm(glob(f"{data_dir}/*.parquet"), desc=f"loading {stage} parquets"):
             #print(file_name)
             #print(file_name.split("/")[-1].split("-")[1])
             # TODO temp fix, we need a more robust way to do this
