@@ -15,3 +15,4 @@ class SufStatsBlock(nn.Module):
     and outputs the mean, variance, and covariance of the input data in
     the shape (batch, suff_stats).
     """
+    pass
