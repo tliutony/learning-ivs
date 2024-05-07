@@ -9,7 +9,7 @@ generation = dict(
     max_vars=100,  # maximum number of variables
     n_instruments=100,  # number of instruments
     instrument_strength=180 / 1000,  # instrument strength, mu^2/n_samples
-    tau_range=[1,1], # fix to 1 for figure generation
+    tau_range=[-5, 5], # fix to 1 for figure generation
     base_seed=seed,  # random seed
 )
 
@@ -21,4 +21,4 @@ n_val = 0.1  # proportion of data to use for validation
 n_test = 0.1  # proportion of data to use for testing 
 
 # work directory
-work_dir = ".datasets/linear/lennon100"  # directory to save data
+work_dir = "./datasets/linear/lennon100_range_tau"  # directory to save data
