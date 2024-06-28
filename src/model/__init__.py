@@ -4,4 +4,4 @@ from .gcn import GCN
 from .pooling_mlp import PoolingMLP
 from .neural_stats import NeuralStats
 from .loss import *
-from .benchmark_estimators import TSLS, LIML, OLS
+from .benchmark_estimators import TSLS, LIML, OLS, MHML

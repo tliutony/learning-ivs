@@ -6,7 +6,8 @@ result_dir = './results/benchmark_lennon100/'
 data_dir = './datasets/linear/lennon100_fixed_tau/'
 
 models = [
-    "TSLS",
-    "LIML",
-    "OLS"
+    #"TSLS",
+    #"LIML",
+    #"OLS"
+    "MHML"
 ]
