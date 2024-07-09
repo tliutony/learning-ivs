@@ -94,7 +94,7 @@ def generate_data_from_config(cfg_path: str, work_dir: str = '') -> None:
         raise NotImplementedError(f"Generator {generator} is not implemented")
 
     # Data generation
-    datasets = generator.generate_all()
+    datasets = generator.generate_all(cfg.n_datasets)
     datasets_split_and_save(datasets, work_dir, cfg.n_train, cfg.n_val, cfg.n_test)
 
 
