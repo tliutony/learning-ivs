@@ -13,7 +13,7 @@ from ..utils import Config
 
 class TabularDataModule(pl.LightningDataModule):
     """
-    DataModule for loading existed CSV data
+    DataModule for loading existed CSV data or to generate data according to some online generation scheme
     """
 
     def __init__(
@@ -28,7 +28,8 @@ class TabularDataModule(pl.LightningDataModule):
         Initialize the csv data module
 
         Args:
-        data_dir: data_dir to csv files, if None, will generate data online
+        data_dir: data_dir to csv files, if None, will generate data online according to data_cfg
+        data_cfg: directory to file specifying configuration details specific to data generation
         train_batch_size: training batch size
         val_batch_size: validation batch size
         test_batch_size: test batch size
