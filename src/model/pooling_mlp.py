@@ -133,7 +133,7 @@ class PoolingMLP(pl.LightningModule):
             The output of the network.
         """
         x, y = batch
-        y_hat = self(x)
+        y_hat = self(x).squeeze()
         loss = nn.MSELoss()(y_hat, y)
 
         # encode the Z _||_ Y | T

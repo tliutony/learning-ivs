@@ -90,11 +90,20 @@ class LinearNormalDataGenerator(DataGenerator):
         )
 
         data = np.concatenate(
-            [z.reshape(-1, 1), c.reshape(-1, 1), t.reshape(-1, 1), y.reshape(-1, 1)],
+            [z.reshape(-1, 1), 
+             #c.reshape(-1, 1), 
+             t.reshape(-1, 1), 
+             y.reshape(-1, 1)],
             axis=1,
         )
+        # TODO need to fix dropping of confounders
         df = pd.DataFrame(
-            data, columns=["instrument", "confounder", "treatment", "outcome"]
+            data, columns=[
+                "instrument", 
+                #"confounder", 
+                "treatment", 
+                "outcome"
+            ]
         )
 
         return {"df": df, "treatment_effect": treat_effect, "n_samples": n_samples}
