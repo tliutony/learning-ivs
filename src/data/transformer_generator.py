@@ -1,15 +1,18 @@
 # %%
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 # %%
 import src.data as data_generators
 from ..data.data_generator import DataGenerator
 
+DELIMITER = -999
+
 class TransformerDataGenerator(DataGenerator):
     """
     Wraps another DataGenerator, and reformats each output dataset as a sequence of -999 delimited input examples.
 
-    Requires the generation dict in data_cfg to contain a base_generation dict itself for the base generator
+    Requires the generation dict in data_cfg for generating Transformer input data to contain a base_generation dict itself for the base generator
 
     generation = dict(generator='TransformerDataGenerator',
                       base_generation = dict(generator='LinearNormalDataGenerator,
@@ -50,25 +53,34 @@ class TransformerDataGenerator(DataGenerator):
         treat_effect = base_dict['treat_effect']
 
         base_dict_df['tau'] = treat_effect
-        base_dict_df['delimiter'] = -999
-
-        # df = pd.DataFrame(base_dict_df.values.ravel()).T
-        flattened_arr = base_dict_df.values.ravel()
+        base_dict_df['delimiter'] = DELIMITER
 
         dict_list = []
-        if self.window_size is not None:
-            width = base_dict_df.shape[1]
-            flattened_arr = flattened_arr[:-(len(flattened_arr) % (width * self.window_size))]
-            windowed_arr = flattened_arr.reshape(-1, width * self.window_size) # divide into windows
+        if self.window_size is None:
+            # if window size not specified, set window to be entire dataset
+            self.window_size = len(base_dict_df)
 
-            for row in windowed_arr:
-                row_df = pd.DataFrame(row).T
-                row_df = row_df.drop(row_df.columns[-2:], axis=1)
-                dict_list.append({'df': row_df, 'treatment_effect': treat_effect, 'n_samples': 1})
-        else:
-            df = pd.DataFrame(flattened_arr).T
-            df = df.drop(df.columns[-2:], axis=1) # drop last tau label and delimiter
-            dict_list.append({'df': df, 'treatment_effect': treat_effect, 'n_samples': 1})
+        # group dataframe into groups of 'window_size' consecutive rows
+        grouped_by_window = base_dict_df.groupby(np.arange(len(base_dict_df)) // self.window_size)
+        # merge each group into single list, returning a pandas Series of lists
+        flattened_groups = grouped_by_window.apply(lambda x: x.values.ravel())
+        # default behavior: drop remaining columns that don't fill a window
+        if len(base_dict_df) % self.window_size != 0:
+            flattened_groups = flattened_groups[:-1]
+        # create new column names
+        new_columns = []
+        for i in range(self.window_size):
+            new_columns.extend([f'{prefix}_{i}' for prefix in base_dict_df.columns])
+        cols_todrop = [f'tau_{self.window_size-1}', f'delimiter_{self.window_size-1}']
+        # create new dataframe
+        reshaped_df = pd.DataFrame(flattened_groups.tolist(), columns=new_columns)
+        reshaped_df.drop(columns=cols_todrop, inplace=True)
+        
+        # iterate over rows of this new dataframe, and add each row as its own dataframe as part of dictionary to dict_ist
+        for row_idx in range(len(reshaped_df)):
+            row_df = reshaped_df.iloc[[row_idx]]
+            dict_list.append({'df': row_df, 'treatment_effect': treat_effect, 'n_samples': 1})
+        
         return dict_list
 
 
