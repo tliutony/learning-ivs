@@ -1,3 +1,4 @@
 from .tabular_datamodule import TabularDataModule, DataFrameDataset
 from .lin_norm_generator import LinearNormalDataGenerator
 from .lennon_iv_generator import LennonIVGenerator
+from .transformer_generator import TransformerDataGenerator
