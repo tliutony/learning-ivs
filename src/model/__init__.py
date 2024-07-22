@@ -5,3 +5,4 @@ from .pooling_mlp import PoolingMLP
 from .neural_stats import NeuralStats
 from .loss import *
 from .benchmark_estimators import TSLS, LIML, OLS, MHML
+from .transformer import TransformerEncoder
