@@ -14,7 +14,7 @@ class TransformerEncoder(pl.LightningModule):
     Transformer encoder - consists of `n_blocks` EncoderBlocks in series.
     """
     def __init__(self, n_blocks, n_heads, d_model, d_hidden, dropout: float = 0.1, lr: float = 0.001,
-                 weight_decay: float = 0.0, pooling: Optional[str] = None, seq_len: Optional[int] = None) -> None:
+                 weight_decay: float = 0.0, pooling: Optional[str] = None, seq_len: Optional[int] = None, qk_dim: Optional[int] = None, v_dim: Optional[int] = None) -> None:
         """
         Initialize transformer encoder.
 
@@ -24,9 +24,10 @@ class TransformerEncoder(pl.LightningModule):
         d_hidden: dimension of hidden layer in MLP sublayer for each EncoderBlock
         pooling: specifies how output of final layer across all tokens are aggregated. if None, then concatenates all outputs and applies a Linear. otherwise, one of {'average', ???}
         seq_len: length of input sequence. only required if pooling is None, since in order to apply a Linear to concatenation of all vectors in a sequence, one needs to know the length of the sequence. assumes all input has fixed length.
+        qk/v_dim: see EncoderBlock docs
         """
         super().__init__()
-        self.encoder = EncoderBlock(n_heads, d_model, d_hidden, dropout)
+        self.encoder = EncoderBlock(n_heads, d_model, d_hidden, dropout, qk_dim, v_dim)
         self.model = nn.Sequential(*[copy.deepcopy(self.encoder) for _ in range(n_blocks)])
         self._initialize_weights(self.model)
         self.lr = lr
@@ -100,18 +101,30 @@ class EncoderBlock(nn.Module):
       |_______________________________________________|^
     
     """
-    def __init__(self, n_heads:int, d_model:int, d_hidden:int, dropout=0.1) -> None:
+    def __init__(self, n_heads:int, d_model:int, d_hidden:int, dropout=0.1, qk_dim: Optional[int] = None, v_dim: Optional[int] = None) -> None:
         """
         n_heads: number of attention heads working in parallel
         d_model: dimension of inputs and outputs, as well as of intermediate query, key, and value vectors in attention; the input and output dimensions are set to be the same primarily to ensure residual connections work properly
         d_hidden: dimension of hidden layer in MLP
         dropout: dropout probability in dropout layer
+        qk/v_dim: specify dimension of query, key / value vector dimensions
         """
         super().__init__()
         self.attn_norm = nn.LayerNorm(d_model)
-        # assuming v_dim = qk_dim, enforces number of parameters remains unchanged with number of heads (for comparisons)
-        assert d_model % n_heads == 0
-        qk_dim, v_dim = d_model // n_heads, d_model // n_heads
+
+        def default_qkv_dim(d_model, n_heads):
+            """
+            returns default dimension of query, key / value vectors, given d_model and number attention heads
+            """
+            if d_model < n_heads:
+                return d_model
+            else:
+                return d_model // n_heads
+            
+        if qk_dim is None:
+            qk_dim = default_qkv_dim(d_model, n_heads)
+        if v_dim is None:
+            v_dim = default_qkv_dim(d_model, n_heads)
         self.mh_attn = MultiHeadAttentionBlock(n_heads, in_dim=d_model, qk_dim=qk_dim, v_dim=v_dim, out_dim=d_model, dropout=dropout)
         self.attn_dropout = nn.Dropout(dropout)
 

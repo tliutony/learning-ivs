@@ -1,4 +1,4 @@
-model = dict(name='TransformerEncoder', n_blocks=3, n_heads=1, d_model=1, d_hidden=10)
+model = dict(name='TransformerEncoder', n_blocks=4, n_heads=4, d_model=1, d_hidden=256, pooling='average')
 
 # data, online generation
 # copied so far
@@ -15,8 +15,7 @@ lr = 0.1
 weight_decay = 0.0001
 
 # logging
-# logging = False
-logging = True
+logging = False
 project_name = 'iv_linear_normal'
 work_dir = './checkpoints/linear'
 early_stopping = dict(monitor='val_loss', mode='min', patience=20)
