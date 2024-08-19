@@ -40,14 +40,23 @@ if __name__ == "__main__":
     print(f"Benchmarking against {cfg.exp_name}")
     # TODO parallelize this
     result_df = pd.DataFrame()
-    for model_name in cfg.models:
+    for model_name, opt_dict in cfg.models.items():
         print(f"\tEvaluating {model_name}...")
         if model_name is not None:
             result_path = os.path.join(cfg.result_dir, f"{model_name}_results.parquet")
             try:
                 results = pd.read_parquet(result_path)
             except FileNotFoundError:
-                model = getattr(modelzoo, model_name)()
+                model = getattr(modelzoo, model_name)
+                # model has a checkpoint to use
+                if 'chkpt_path' in opt_dict:
+                    model = model.load_from_checkpoint(opt_dict['chkpt_path'])
+                    model.eval()
+                # otherwise is a baseline model without inference
+                else:                        
+                    model = model()
+
+                # TODO allow for kwargs in opt_dict to be passed
                 results = model.estimate_all(test_data)
                 results['model'] = model_name
                 results.to_parquet(result_path)

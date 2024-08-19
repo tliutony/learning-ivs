@@ -1,11 +1,13 @@
+import pandas as pd
 import torch
 import torch.nn as nn
 from typing import Callable
 import pytorch_lightning as pl
 from einops.layers.torch import Rearrange, Reduce
+
 from .mine import MINE
 from .mlp import LinearBlock
-
+from .base_estimator import BaseEstimator
 
 class ResLinearBlock(torch.nn.Module):
     """
@@ -68,7 +70,7 @@ class PostPoolingBlock(torch.nn.Module):
         return self.fc_out(x)
 
 
-class PoolingMLP(pl.LightningModule):
+class PoolingMLP(pl.LightningModule, BaseEstimator):
     """
     Instrumental variable learner based on Multi-Layer Perceptron (MLP) with Pre- and Post-Pooling Blocks for
     dimensionality reduction.
@@ -143,3 +145,19 @@ class PoolingMLP(pl.LightningModule):
 
         self.log(f'{stage}_loss', loss, prog_bar=True)
         return loss
+
+
+    def estimate(self, T, X, Z, Y) -> dict:
+        # rebuild dataframe into Tensor, assumes this same order
+        df = pd.concat([T, Y, Z, X], axis=1)
+        data = torch.tensor(df.to_numpy(), dtype=torch.float32)
+        # create a batch dimension
+        data = data.unsqueeze(0)
+        tau = self.model(data).squeeze().item()
+        
+        # TODO we need a way to compute standard errors
+        return {
+            'tau': tau,
+            'se': None
+        }
+
