@@ -48,9 +48,18 @@ if __name__ == "__main__":
                 results = pd.read_parquet(result_path)
             except FileNotFoundError:
                 model = getattr(modelzoo, model_name)
+                # model will be downloaded from huggingface
+                if 'hf_url' in opt_dict:
+                    hf_url = opt_dict['hf_url']
+                    print(f"Downloading from HF at {hf_url}...")
+                    model = model.from_pretrained(hf_url)
+                    model.eval()
+
                 # model has a checkpoint to use
-                if 'chkpt_path' in opt_dict:
-                    model = model.load_from_checkpoint(opt_dict['chkpt_path'])
+                elif 'chkpt_path' in opt_dict:
+                    chkpt_path = opt_dict['chkpt_path']
+                    print(f"Loading from local checkpoint at {chkpt_path}...")
+                    model = model.load_from_checkpoint(chkpt_path)
                     model.eval()
                 # otherwise is a baseline model without inference
                 else:                        

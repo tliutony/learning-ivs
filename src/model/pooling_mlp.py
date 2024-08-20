@@ -4,6 +4,7 @@ import torch.nn as nn
 from typing import Callable
 import pytorch_lightning as pl
 from einops.layers.torch import Rearrange, Reduce
+from huggingface_hub import PyTorchModelHubMixin
 
 from .mine import MINE
 from .mlp import LinearBlock
@@ -70,7 +71,12 @@ class PostPoolingBlock(torch.nn.Module):
         return self.fc_out(x)
 
 
-class PoolingMLP(pl.LightningModule, BaseEstimator):
+class PoolingMLP(
+    pl.LightningModule, 
+    BaseEstimator, 
+    PyTorchModelHubMixin, 
+    repo_url="https://huggingface.co/learning-ivs/pooling-mlp"
+):
     """
     Instrumental variable learner based on Multi-Layer Perceptron (MLP) with Pre- and Post-Pooling Blocks for
     dimensionality reduction.
