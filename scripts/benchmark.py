@@ -9,6 +9,7 @@ import pandas as pd
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from argparse import ArgumentParser
+from huggingface_hub import snapshot_download
 
 from src.utils import Config
 from src import model as modelzoo
@@ -26,8 +27,17 @@ if __name__ == "__main__":
     cfg = Config.fromfile(args.cfg)
     seed = cfg.seed if cfg.get('seed', None) is not None else args.seed
 
+    
+    # prefer huggingface repo
+    if 'hf_dataset' in cfg:
+        print(f"Downloading dataset from HF: {cfg.hf_dataset}...")
+        data_path = snapshot_download(repo_id=cfg.hf_dataset, repo_type="dataset")
+    else:
+        data_path = cfg.data_dir
+
+    data_module = TabularDataModule(data_path)
+
     # load test datasets only, as benchmark estimators don't need training
-    data_module = TabularDataModule(cfg.data_dir)
     data_module.setup(stage="test")
     test_data = data_module.testset
 

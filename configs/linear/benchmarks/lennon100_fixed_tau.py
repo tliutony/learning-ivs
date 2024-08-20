@@ -1,7 +1,8 @@
-exp_name = "lennon100_fixed_tau"
+exp_name = "lennon100-fixed-tau"
 
 # directories
 result_dir = f"./results/{exp_name}/"
+hf_dataset = f"learning-ivs/{exp_name}"
 data_dir = f"./datasets/linear/{exp_name}/"
 
 # TODO recreate with config
