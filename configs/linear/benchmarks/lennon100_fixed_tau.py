@@ -5,7 +5,6 @@ result_dir = f"./results/{exp_name}/"
 hf_dataset = f"learning-ivs/{exp_name}"
 data_dir = f"./datasets/linear/{exp_name}/"
 
-# TODO recreate with config
 models = {
     "TSLS": {},
     "LIML": {},
