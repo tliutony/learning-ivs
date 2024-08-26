@@ -16,7 +16,7 @@ generation = dict(
                 )
 
 # data split
-n_datasets = 1000  # number of datasets to generate
+n_datasets = 50000  # number of datasets to generate
 n_train = 0.8  # proportion of data to use for training
 n_val = 0.1  # proportion of data to use for validation
 n_test = 0.1  # proportion of data to use for testing
