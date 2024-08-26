@@ -18,7 +18,7 @@ class BaseEstimator(ABC):
         """
         pass
 
-    def estimate_all(self, datasets: list) -> list:
+    def estimate_all(self, datasets: list, **kwargs) -> list:
         """Estimate the treatment effect for multiple datasets.
 
         Args:
@@ -32,7 +32,7 @@ class BaseEstimator(ABC):
             # pull X data, if the columns exist
             X_data = dataset.loc[:, dataset.columns.str.startswith('X')]
             Z_data = dataset.loc[:, dataset.columns.str.startswith('Z')]
-            result = self.estimate(T=dataset['T'], X=X_data, Z=Z_data, Y=dataset['Y'])
+            result = self.estimate(T=dataset['T'], X=X_data, Z=Z_data, Y=dataset['Y'], **kwargs)
             result['ground_truth'] = ground_truth_tau
             result['idx'] = idx
             results.append(result)
