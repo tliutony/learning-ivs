@@ -107,7 +107,7 @@ class EncoderBlock(nn.Module):
         d_model: dimension of inputs and outputs, as well as of intermediate query, key, and value vectors in attention; the input and output dimensions are set to be the same primarily to ensure residual connections work properly
         d_hidden: dimension of hidden layer in MLP
         dropout: dropout probability in dropout layer
-        qk/v_dim: specify dimension of query, key / value vector dimensions
+        qk/v_dim: specify dimension of query, key / value vectors
         """
         super().__init__()
         self.attn_norm = nn.LayerNorm(d_model)
