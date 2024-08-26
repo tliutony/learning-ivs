@@ -5,6 +5,7 @@ from tqdm import tqdm
 # %%
 import src.data as data_generators
 from ..data.data_generator import DataGenerator
+from typing import Optional
 
 DELIMITER = -999
 
@@ -29,7 +30,7 @@ class TransformerDataGenerator(DataGenerator):
                     
                     ) 
     """
-    def __init__(self, base_generation, window_size):
+    def __init__(self, base_generation, window_size: Optional[int] = None):
         """
         base_generation: dict, identical to `generation` attribute in data_cfg when using any other DataGenerator. used to initialize DataGenerator that this class wraps
         window_size: int, specifies length of window/sequence input to transformer, in terms of number of training examples per sequence
@@ -44,7 +45,7 @@ class TransformerDataGenerator(DataGenerator):
 
         Returns a list of dictionaries of form
 
-        {'df': df, 'treatment_effect': treat_effect, 'n_samples': 1}
+        {'df': df, 'treatment_effect': treat_effect, 'n_samples': n_samples}
 
         of length 1 if window_size is None, and n // window_size otherwise, where n is the number of data points returned by base generator's generate function. By default drops any remaining last points that don't fill a window.
         """
@@ -59,7 +60,9 @@ class TransformerDataGenerator(DataGenerator):
         if self.window_size is None:
             # if window size not specified, set window to be entire dataset
             self.window_size = len(base_dict_df)
-
+            n_samples = len(base_dict_df)
+        else:
+            n_samples = len(base_dict_df) // self.window_size
         
         # group dataframe into groups of 'window_size' consecutive rows
         grouped_by_window = base_dict_df.groupby(np.arange(len(base_dict_df)) // self.window_size)
@@ -78,8 +81,9 @@ class TransformerDataGenerator(DataGenerator):
         reshaped_df.drop(columns=cols_todrop, inplace=True)
 
         reshaped_df = reshaped_df.T # transpose so we can extract columns as single data points; this allows us to batch data points to give batches of shape (bs, seq_len, data_dim=1) as required for Transformer input
+        reshaped_df.columns = reshaped_df.columns.astype(str) # parquet requires columns to be strings
         dict_list = [
-            {'df': reshaped_df[[col]], 'treatment_effect': treat_effect}
+            {'df': reshaped_df[[col]], 'treatment_effect': treat_effect, 'n_samples':n_samples}
             for col in reshaped_df.columns
                     ]
         
