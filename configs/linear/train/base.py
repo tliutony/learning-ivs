@@ -1,5 +1,5 @@
 # model
-model = dict(name='MLP', num_classes=1)
+# model = dict(name='MLP', num_classes=1)
 
 # data
 data_dir = './data/linear'

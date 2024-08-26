@@ -9,7 +9,7 @@ generation = dict(
     max_vars=100,  # maximum number of variables
     n_instruments=100,  # number of instruments
     instrument_strength=180 / 1000,  # instrument strength, mu^2/n_samples
-    tau_range=[-1, 1], # fix to 1 for figure generation
+    tau_range=[1, 1], # fix to 1 for figure generation
     base_seed=seed,  # random seed
 )
 
