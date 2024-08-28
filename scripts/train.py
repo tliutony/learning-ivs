@@ -74,7 +74,7 @@ def train():
         cfg.dump(os.path.join(cfg.work_dir, cfg.exp_name, cfg_name))
 
     # callbacks
-    callbacks = [plc.RichProgressBar(), plc.EarlyStopping(**cfg.early_stopping)]
+    callbacks = [plc.EarlyStopping(**cfg.early_stopping)]  # plc.RichProgressBar()
     # used to control early stopping
     # used to save the best model
     dirpath = os.path.join(cfg.work_dir, cfg.exp_name, 'ckpts')

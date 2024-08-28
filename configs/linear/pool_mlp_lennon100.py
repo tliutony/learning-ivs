@@ -8,7 +8,8 @@ model = dict(name='PoolingMLP', input_channels=102,
 
 # data
 work_dir = './workdir'
-data_dir = './datasets/linear/lennon100' # activate online data generation by setting data_dir to None
+data_cfg = 'datasets/linear/lennon100_fixed_tau.py'
+data_dir = None # './datasets/linear/lennon100' # activate online data generation by setting data_dir to None
 train_batch_size = 256
 val_batch_size = 256
 test_batch_size = 256
