@@ -6,6 +6,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 import pytorch_lightning.callbacks as plc
+from huggingface_hub import snapshot_download
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from argparse import ArgumentParser
@@ -58,7 +59,16 @@ def train():
         raise NotImplementedError(f"Model {model_name} is not implemented yet. Please check the model name.")
 
     # data
-    data_module = TabularDataModule(cfg.data_dir, cfg.train_batch_size, cfg.val_batch_size, cfg.test_batch_size,
+
+    # prefer huggingface repo
+    if 'hf_dataset' in cfg:
+        print(f"Downloading dataset from HF: {cfg.hf_dataset}...")
+        data_path = snapshot_download(repo_id=cfg.hf_dataset, repo_type="dataset")
+    # otherwise use local data_dir
+    else:
+        data_path = cfg.data_dir
+            
+    data_module = TabularDataModule(data_path, cfg.train_batch_size, cfg.val_batch_size, cfg.test_batch_size,
                                     cfg.data_cfg)
 
     # optimization

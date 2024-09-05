@@ -21,6 +21,4 @@ weight_decay = 0.0001
 
 # logging
 logging = False
-exp_name = f'pool_mlp_lennon_bs{train_batch_size}_lr{lr}_eps{max_epochs}_hidden{model["hidden_channels"]}_depth{model["depth"]}'
-
-
+exp_name = f'pool_mlp_lennon100_10k_bs{train_batch_size}_lr{lr}_eps{max_epochs}_hidden{model["hidden_channels"]}_depth{model["depth"]}'

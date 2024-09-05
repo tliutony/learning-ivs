@@ -9,6 +9,7 @@ import pandas as pd
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from argparse import ArgumentParser
+from huggingface_hub import snapshot_download
 
 from src.utils import Config
 from src import model as modelzoo
@@ -26,8 +27,17 @@ if __name__ == "__main__":
     cfg = Config.fromfile(args.cfg)
     seed = cfg.seed if cfg.get('seed', None) is not None else args.seed
 
+    
+    # prefer huggingface repo
+    if 'hf_dataset' in cfg:
+        print(f"Downloading dataset from HF: {cfg.hf_dataset}...")
+        data_path = snapshot_download(repo_id=cfg.hf_dataset, repo_type="dataset")
+    else:
+        data_path = cfg.data_dir
+
+    data_module = TabularDataModule(data_path)
+
     # load test datasets only, as benchmark estimators don't need training
-    data_module = TabularDataModule(cfg.data_dir)
     data_module.setup(stage="test")
     test_data = data_module.testset
 
@@ -40,14 +50,32 @@ if __name__ == "__main__":
     print(f"Benchmarking against {cfg.exp_name}")
     # TODO parallelize this
     result_df = pd.DataFrame()
-    for model_name in cfg.models:
+    for model_name, opt_dict in cfg.models.items():
         print(f"\tEvaluating {model_name}...")
         if model_name is not None:
             result_path = os.path.join(cfg.result_dir, f"{model_name}_results.parquet")
             try:
                 results = pd.read_parquet(result_path)
             except FileNotFoundError:
-                model = getattr(modelzoo, model_name)()
+                model = getattr(modelzoo, model_name)
+                # model will be downloaded from huggingface
+                if 'hf_url' in opt_dict:
+                    hf_url = opt_dict['hf_url']
+                    print(f"Downloading from HF at {hf_url}...")
+                    model = model.from_pretrained(hf_url)
+                    model.eval()
+
+                # model has a checkpoint to use
+                elif 'chkpt_path' in opt_dict:
+                    chkpt_path = opt_dict['chkpt_path']
+                    print(f"Loading from local checkpoint at {chkpt_path}...")
+                    model = model.load_from_checkpoint(chkpt_path)
+                    model.eval()
+                # otherwise is a baseline model without inference
+                else:                        
+                    model = model()
+
+                # TODO allow for kwargs in opt_dict to be passed
                 results = model.estimate_all(test_data)
                 results['model'] = model_name
                 results.to_parquet(result_path)

@@ -57,6 +57,8 @@ class MHML(BaseEstimator):
     - cross-fit, choose number of folds
     - then pass into a TSLS 
     - bootstrap sampling for bias and variance??
+
+    TODO move all kwargs to the estimate method
     """
     n_folds = None
     estimator = None
