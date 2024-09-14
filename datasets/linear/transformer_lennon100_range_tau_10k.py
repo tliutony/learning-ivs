@@ -21,5 +21,5 @@ n_train = 0.8  # proportion of data to use for training
 n_val = 0.1  # proportion of data to use for validation
 n_test = 0.1  # proportion of data to use for testing
 
-# work directory
+# work directory (overridden by work_dir args when calling generate_data)
 work_dir = "/project/learning-ivs/data/linear_norm"  # directory to save data

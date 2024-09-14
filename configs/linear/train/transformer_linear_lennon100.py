@@ -9,7 +9,12 @@ data_dir = './tmp_lennon100/range' # activate online data generation by setting 
 data_cfg = None
 # prefer hf_dataset of data_dir
 hf_dataset = 'learning-ivs/lennon100-range-tau-10k'
+# hf_dataset conditional args
+window_size = 1
+transformer_transform = True # transform hf data to transformer ready format
 #data_cfg = 'datasets/linear/lennon100.py'
+
+# batch sizes
 train_batch_size = 256
 val_batch_size = 256
 test_batch_size = 256

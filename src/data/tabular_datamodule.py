@@ -43,7 +43,13 @@ class TabularDataModule(pl.LightningDataModule):
         elif data_dir is None and data_cfg is not None:
             # load data config and setup online generation
             self.online_generation = True
-            data_cfg = Config.fromfile(data_cfg)
+            if isinstance(data_cfg, str):
+                data_cfg = Config.fromfile(data_cfg)
+            elif isinstance(data_cfg, Config):
+                pass # continue as is
+            else:
+                raise TypeError(f"data_cfg should be either path to a data generation config file, or a Config object, received {type(data_cfg)}")
+
             generator = data_cfg.generation.pop("generator")
             self.online_generator = getattr(data_generators, generator)(
                 **data_cfg.generation
@@ -85,8 +91,13 @@ class TabularDataModule(pl.LightningDataModule):
         Returns:
             dataframe of all datasets
         """
-        if self.online_generation:
-            n_datasets = int(self.data_cfg.get(f"n_{stage}") * self.data_cfg.n_datasets)
+        if self.online_generation: # true online generation or online transformaton
+            # self.online_generator has already been configured to do one of online generation or online transformation; conditional here simply determines which args to provide to generate_all
+            if isinstance(self.data_cfg, str): # true online generation
+                n_datasets = int(self.data_cfg.get(f"n_{stage}") * self.data_cfg.n_datasets)
+            elif isinstance(self.data_cfg, Config): # online transformation
+                n_datasets = None # generate_all ignores this
+            # generate/transform data online, add to parquets
             datasets = self.online_generator.generate_all(n_datasets)
             parquets = []
             for dataset in datasets:

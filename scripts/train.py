@@ -59,11 +59,29 @@ def train():
         raise NotImplementedError(f"Model {model_name} is not implemented yet. Please check the model name.")
 
     # data
-
     # prefer huggingface repo
     if 'hf_dataset' in cfg:
+        assert 'window_size' in cfg, "online transformation requires window_size to be specified in train cfg"
         print(f"Downloading dataset from HF: {cfg.hf_dataset}...")
         data_path = snapshot_download(repo_id=cfg.hf_dataset, repo_type="dataset")
+        # update later with other transforms if needed
+        if getattr(cfg, 'transformer_transform', False): # apply data transforms to hf data using TransformerDataGenerator to make data transformer-ready
+            # define custom data_cfg for 'online transformation' (loading data and transforming with TransformerDataGenerator)
+            cfg.data_cfg = Config(dict(
+                generation = dict(generator="TransformerDataGenerator",
+                                  data_path=data_path,
+                                  window_size=cfg.window_size,
+                                  stage='train'),
+                # data splitting
+                n_train = 0.8,  # proportion of data to use for training
+                n_val = 0.1,  # proportion of data to use for validation
+                n_test = 0.1  # proportion of data to use for testing
+                                  ))
+            data_path = None # make sure TabDataMod (init below) doesn't explicitly pull data from path as final dataset
+            # TransfDataGen does remaining work pulling data from specified path and manipulating it, within TabDataMod using cfg.data_cfg
+        else:
+            raise ValueError("transformer_transform must be set to True in cfg when using an hf_dataset")
+   
     # otherwise use local data_dir
     else:
         data_path = cfg.data_dir

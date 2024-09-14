@@ -619,7 +619,8 @@ class Config:
         return text
 
     def __repr__(self):
-        return f'Config (path: {self.filename}): {self._cfg_dict.__repr__()}'
+        return f'Config({self._cfg_dict.__repr__()})'
+        # return f'Config (path: {self.filename}): {self._cfg_dict.__repr__()}'
 
     def __len__(self):
         return len(self._cfg_dict)
