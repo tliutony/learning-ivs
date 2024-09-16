@@ -92,11 +92,7 @@ class TabularDataModule(pl.LightningDataModule):
             dataframe of all datasets
         """
         if self.online_generation: # true online generation or online transformaton
-            # self.online_generator has already been configured to do one of online generation or online transformation; conditional here simply determines which args to provide to generate_all
-            if isinstance(self.data_cfg, str): # true online generation
-                n_datasets = int(self.data_cfg.get(f"n_{stage}") * self.data_cfg.n_datasets)
-            elif isinstance(self.data_cfg, Config): # online transformation
-                n_datasets = None # generate_all ignores this
+            n_datasets = int(self.data_cfg.get(f"n_{stage}") * self.data_cfg.n_datasets)
             # generate/transform data online, add to parquets
             datasets = self.online_generator.generate_all(n_datasets)
             parquets = []
@@ -143,8 +139,8 @@ class TabularDataModule(pl.LightningDataModule):
         return DataLoader(
             trainset,
             batch_size=self.train_batch_size,
-            num_workers=4,
-            pin_memory=True,
+            num_workers=1, # was 4
+            pin_memory=False, # was True
             shuffle=True,
         )
 
@@ -159,8 +155,8 @@ class TabularDataModule(pl.LightningDataModule):
         return DataLoader(
             valset,
             batch_size=self.val_batch_size,
-            num_workers=4,
-            pin_memory=True,
+            num_workers=1, # was 4
+            pin_memory=False, # was True
             shuffle=False,
         )
 
@@ -175,8 +171,8 @@ class TabularDataModule(pl.LightningDataModule):
         return DataLoader(
             testset,
             batch_size=self.test_batch_size,
-            num_workers=4,
-            pin_memory=True,
+            num_workers=1, # was 4
+            pin_memory=False, # was True
             shuffle=False,
         )
 

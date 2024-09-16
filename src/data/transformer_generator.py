@@ -82,7 +82,7 @@ class TransformerDataGenerator(DataGenerator):
         elif self.mode == 'online_transformation':
             assert self.stage is not None, "stage must be specified for online transformation"
             parquets = self.load_parquets_to_df(self.stage)
-            for i in tqdm(range(len(parquets)), desc="Loading and transforming data"):
+            for i in tqdm(range(n_datasets), desc="Loading and transforming data"):
                 base_df, treat_effect = parquets[i]
                 # transform
                 dataset_list = self.transform_to_transformer_ready(base_df, treat_effect)

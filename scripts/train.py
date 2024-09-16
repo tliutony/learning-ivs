@@ -72,10 +72,11 @@ def train():
                                   data_path=data_path,
                                   window_size=cfg.window_size,
                                   stage='train'),
-                # data splitting
-                n_train = 0.8,  # proportion of data to use for training
+                # data splitting 
+                n_datasets = 10000,
+                n_train = 0.16, # 0.8,  # reduced n_train for more tractable training. # proportion of data to use for training
                 n_val = 0.1,  # proportion of data to use for validation
-                n_test = 0.1  # proportion of data to use for testing
+                n_test = 0.74 # 0.1  # proportion of data to use for testing
                                   ))
             data_path = None # make sure TabDataMod (init below) doesn't explicitly pull data from path as final dataset
             # TransfDataGen does remaining work pulling data from specified path and manipulating it, within TabDataMod using cfg.data_cfg
