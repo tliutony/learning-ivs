@@ -8,7 +8,7 @@ work_dir = './workdir'
 data_dir = './tmp_lennon100/range' # activate online data generation by setting data_dir to None and specifying data_cfg
 data_cfg = None
 # prefer hf_dataset of data_dir
-hf_dataset = 'learning-ivs/lennon100-range-tau-10k'
+hf_dataset = 'learning-ivs/lennon100-range-tau-10k' # changed range to fixed
 # hf_dataset conditional args
 window_size = 1
 transformer_transform = True # transform hf data to transformer ready format
@@ -20,8 +20,8 @@ val_batch_size = 256
 test_batch_size = 256
 
 # optimization
-max_epochs = 100
-lr = 3e-4
+max_epochs = 35 # changed from 100 to 50 to 35
+lr = 1e-4
 weight_decay = 1e-4
 
 # logging
