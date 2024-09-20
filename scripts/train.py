@@ -69,7 +69,7 @@ def train():
         data_path = cfg.data_dir
             
     data_module = TabularDataModule(data_path, cfg.train_batch_size, cfg.val_batch_size, cfg.test_batch_size,
-                                    cfg.data_cfg, cfg.use_huggingface)
+                                    cfg.data_cfg, use_sequence=cfg.use_sequence, sequence_length=cfg.sequence_length, use_huggingface=cfg.use_huggingface, lazy_loading=cfg.lazy_loading)
     # optimization
     args.max_epochs = cfg.max_epochs
 

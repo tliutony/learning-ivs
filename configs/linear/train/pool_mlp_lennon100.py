@@ -9,8 +9,11 @@ model = dict(name='PoolingMLP', input_channels=102,
 # data
 work_dir = './workdir'
 use_huggingface = False
+use_sequence = False
+sequence_length = None
 data_cfg = 'datasets/linear/lennon100_fixed_tau.py'
 data_dir = '/data/shared/huggingface/hub/datasets--learning-ivs--lennon100-range-tau-10k/snapshots/cf012de277abb6146c84cf543a3b0819bbff1a3c' # activate online data generation by setting data_dir to None
+lazy_loading = True
 train_batch_size = 256
 val_batch_size = 256
 test_batch_size = 256
