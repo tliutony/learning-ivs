@@ -69,8 +69,7 @@ def train():
         data_path = cfg.data_dir
             
     data_module = TabularDataModule(data_path, cfg.train_batch_size, cfg.val_batch_size, cfg.test_batch_size,
-                                    cfg.data_cfg)
-
+                                    cfg.data_cfg, use_sequence=cfg.use_sequence, sequence_length=cfg.sequence_length, use_huggingface=cfg.use_huggingface, lazy_loading=cfg.lazy_loading)
     # optimization
     args.max_epochs = cfg.max_epochs
 
@@ -84,7 +83,7 @@ def train():
         cfg.dump(os.path.join(cfg.work_dir, cfg.exp_name, cfg_name))
 
     # callbacks
-    callbacks = [plc.RichProgressBar(), plc.EarlyStopping(**cfg.early_stopping)]
+    callbacks = [plc.EarlyStopping(**cfg.early_stopping)]  # plc.RichProgressBar()
     # used to control early stopping
     # used to save the best model
     dirpath = os.path.join(cfg.work_dir, cfg.exp_name, 'ckpts')

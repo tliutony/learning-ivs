@@ -100,7 +100,7 @@ def generate_data_from_config(cfg_path: str, work_dir: str = '') -> None:
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--cfg', type=str, default='../datasets/linear/linear_norm.py')
+    parser.add_argument('--cfg', type=str, default='datasets/linear/lennon100_fixed_tau.py')
     parser.add_argument('--work_dir', type=str, default='')
     args = parser.parse_args()
 
