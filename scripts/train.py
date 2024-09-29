@@ -27,6 +27,8 @@ def setup():
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--gpu_ids', default='[0]', type=str)
     parser.add_argument('--work_dir', type=str, default='')
+    parser.add_argument('--wandb_notes', type=str, default=None, help='Notes for WandB run')
+    
     args = parser.parse_args()
 
 
@@ -76,9 +78,9 @@ def train():
                                     stage='train'),
                     # data splitting 
                     n_datasets = 10000,
-                    n_train = 0.16, # 0.8,  # reduced n_train for more tractable training. # proportion of data to use for training
+                    n_train = 0.1,  # orig 0.8 reduced n_train for more tractable training. # proportion of data to use for training
                     n_val = 0.1,  # proportion of data to use for validation
-                    n_test = 0.74 # 0.1  # proportion of data to use for testing
+                    n_test = 0.8  # proportion of data to use for testing
                                     ))
                 data_path = None # make sure TabDataMod (init below) doesn't explicitly pull data from path as final dataset
                 # TransfDataGen does remaining work pulling data from specified path and manipulating it, within TabDataMod using cfg.data_cfg
@@ -115,8 +117,10 @@ def train():
     save_dir = os.path.join(cfg.work_dir, cfg.exp_name, 'log')
     os.makedirs(save_dir, exist_ok=True)
     if cfg.get('logging', True):
-        args.logger = [WandbLogger(name=cfg.exp_name, project=cfg.project_name, save_dir=save_dir)]
-
+        args.logger = [WandbLogger(name=cfg.exp_name, 
+                                   project=cfg.project_name, 
+                                   save_dir=save_dir, 
+                                   notes=args.wandb_notes)]
     # load trainer
     trainer = Trainer.from_argparse_args(args)
 
