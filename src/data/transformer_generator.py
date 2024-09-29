@@ -66,7 +66,7 @@ class TransformerDataGenerator(DataGenerator):
         """
         Either
         - generates n_datasets worth of vanilla data from scratch and converts it into transformer-ready format (online generation), or
-        - loads data from self.data_path and transforms it to transformer-ready format (offline generation)
+        - loads data from self.data_path and transforms it to transformer-ready format (online transformation)
         self.mode determines this behavior (see init)
 
         (original functionality of generate_all was just to generate n_datasets worth of vanilla dataset in transformer format by wrapping generate function, which generates data from scratch. but extended to include loading and transforming data since generate_all used across project to 'create entire dataset' - sorry for bad code design!)
@@ -87,6 +87,7 @@ class TransformerDataGenerator(DataGenerator):
                 # transform
                 dataset_list = self.transform_to_transformer_ready(base_df, treat_effect)
                 datasets.extend(dataset_list)
+        print(f"Single data input shape: {datasets[0]['df'].shape}")
         return datasets
 
 
