@@ -13,7 +13,7 @@ Code repo for "Learning to efficiently use instrumental variables".
 
 TLDR: we aim to benchmark modern machine learning methods on their ability to predict treatment effects from instrumental variable studies, compared to traditional methods like two-stage least-squares (TSLS).
 
-For more details, see [this document](https://docs.google.com/document/d/1EODX4RHlNU0oUI7sM6cc-GS7Ku6-hx0oR8qe2OD8hYk/edit?usp=sharing). 
+For more details, see [the abstract](https://docs.google.com/document/d/16N6nkLMfFi4IBNoDcxDC-LrK2_oUqbgwuMfEeuzSb7Y/edit?usp=sharing). 
 
 ## Getting Started
 
