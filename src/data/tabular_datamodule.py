@@ -8,6 +8,7 @@ import pytorch_lightning as pl
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 from datasets import load_dataset, load_from_disk
+# import not found..?
 
 import src.data as data_generators  # lin_norm_generator as generators
 from ..utils import Config
@@ -61,16 +62,12 @@ class TabularDataModule(pl.LightningDataModule):
         elif data_dir is None and data_cfg is not None:
             # load data config and setup online generation
             self.online_generation = True
-<<<<<<< HEAD
             if isinstance(data_cfg, str):
                 data_cfg = Config.fromfile(data_cfg)
             elif isinstance(data_cfg, Config):
                 pass # continue as is
             else:
                 raise TypeError(f"data_cfg should be either path to a data generation config file, or a Config object, received {type(data_cfg)}")
-
-=======
->>>>>>> main
             generator = data_cfg.generation.pop("generator")
             self.online_generator = getattr(data_generators, generator)(
                 **data_cfg.generation
