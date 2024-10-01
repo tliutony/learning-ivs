@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
             result_df = pd.concat([result_df, results])
             
-        else:
+        else:   
             raise NotImplementedError(f"estimator {model_name} is not implemented yet. Please check the model name.")
 
     print("Generating metrics...")

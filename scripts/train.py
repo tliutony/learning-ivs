@@ -27,6 +27,8 @@ def setup():
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--gpu_ids', default='[0]', type=str)
     parser.add_argument('--work_dir', type=str, default='')
+    parser.add_argument('--wandb_notes', type=str, default=None, help='Notes for WandB run')
+    
     args = parser.parse_args()
 
 
@@ -59,15 +61,21 @@ def train():
         raise NotImplementedError(f"Model {model_name} is not implemented yet. Please check the model name.")
 
     # data
-
     # prefer huggingface repo
     if 'hf_dataset' in cfg:
         print(f"Downloading dataset from HF: {cfg.hf_dataset}...")
         data_path = snapshot_download(repo_id=cfg.hf_dataset, repo_type="dataset")
+        if model_name == 'TransformerEncoder': # if using transformer with hf dataset, set up online transformation
+            assert 'transformer_transform' in cfg, "online transformation with transformers requires transformer_transform to be specified in cfg, must be one of \{True\}" # update later with other transforms if needed
+            if getattr(cfg, 'transformer_transform', False): # apply data transforms to hf data using TransformerDataGenerator to make data transformer-ready
+                cfg.data_cfg.generation.data_path = data_path # update data_path in transformer data_cfg to path where hf_dataset gets locally downloaded
+                data_path = None # use data_cfg instead
+                # TransfDataGen does remaining work pulling data from specified path and manipulating it, within TabDataMod using cfg.data_cfg
+        # INCLUDE OTHER CASES USING ONLINE TRANSFORMATION HERE FOR FUTURE REFERENCE
     # otherwise use local data_dir
     else:
         data_path = cfg.data_dir
-            
+
     data_module = TabularDataModule(data_path, cfg.train_batch_size, cfg.val_batch_size, cfg.test_batch_size,
                                     cfg.data_cfg, use_sequence=cfg.use_sequence, sequence_length=cfg.sequence_length, use_huggingface=cfg.use_huggingface, lazy_loading=cfg.lazy_loading)
     # optimization
@@ -96,8 +104,10 @@ def train():
     save_dir = os.path.join(cfg.work_dir, cfg.exp_name, 'log')
     os.makedirs(save_dir, exist_ok=True)
     if cfg.get('logging', True):
-        args.logger = [WandbLogger(name=cfg.exp_name, project=cfg.project_name, save_dir=save_dir)]
-
+        args.logger = [WandbLogger(name=cfg.exp_name, 
+                                   project=cfg.project_name, 
+                                   save_dir=save_dir, 
+                                   notes=args.wandb_notes)]
     # load trainer
     trainer = Trainer.from_argparse_args(args)
 
