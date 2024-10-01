@@ -1,3 +1,5 @@
+from src.utils.config import Config
+
 _base_ = './base.py'
 
 # model
@@ -5,13 +7,26 @@ model = dict(name='TransformerEncoder', n_blocks=2, n_heads=2, d_model=1, d_hidd
 
 # data
 work_dir = './workdir'
-# data_dir = './tmp_lennon100/range' # activate online data generation by setting data_dir to None and specifying data_cfg
-data_cfg = None
-# prefer hf_dataset over data_dir
-hf_dataset = 'learning-ivs/lennon7-range-tau-10k'
+# data_dir = './tmp_lennon100/range'
+hf_dataset = 'learning-ivs/lennon7-range-tau-10k' # prefer hf_dataset over data_dir
+
 # hf_dataset conditional args
-window_size = 1
 transformer_transform = True # transform hf data to transformer ready format
+
+# custom data_cfg for online transformation
+data_cfg = Config(dict(
+    generation = dict(generator="TransformerDataGenerator",
+                    data_path=None, # this gets updated in train.py at runtime to path where hf_dataset gets locally downloaded
+                    window_size=1,
+                    stage='train'),
+    # data splitting 
+    n_datasets = 10000,
+    n_train = 0.1, # 0.8,  # reduced n_train for more tractable training. # proportion of data to use for training
+    n_val = 0.1,  # proportion of data to use for validation
+    n_test = 0.8 # 0.1  # proportion of data to use for testing
+                    ))
+
+lazy_loading = False
 
 # batch sizes
 train_batch_size = 256
