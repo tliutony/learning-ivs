@@ -27,6 +27,8 @@ def setup():
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--gpu_ids', default='[0]', type=str)
     parser.add_argument('--work_dir', type=str, default='')
+    parser.add_argument('--wandb_notes', type=str, default=None, help='Notes for WandB run')
+    
     args = parser.parse_args()
 
 
@@ -64,23 +66,10 @@ def train():
         print(f"Downloading dataset from HF: {cfg.hf_dataset}...")
         data_path = snapshot_download(repo_id=cfg.hf_dataset, repo_type="dataset")
         if model_name == 'TransformerEncoder': # if using transformer with hf dataset, set up online transformation
-            assert 'transformer_transform' in cfg, "online transformation with transformers requires transformer_transform to be specified in cfg, must be one of \{True\}"
-            assert 'window_size' in cfg, "online transformation with transformers requires window_size to be specified in train cfg"
-            # update later with other transforms if needed
+            assert 'transformer_transform' in cfg, "online transformation with transformers requires transformer_transform to be specified in cfg, must be one of \{True\}" # update later with other transforms if needed
             if getattr(cfg, 'transformer_transform', False): # apply data transforms to hf data using TransformerDataGenerator to make data transformer-ready
-                # define custom data_cfg for 'online transformation' (loading data and transforming with TransformerDataGenerator)
-                cfg.data_cfg = Config(dict(
-                    generation = dict(generator="TransformerDataGenerator",
-                                    data_path=data_path,
-                                    window_size=cfg.window_size,
-                                    stage='train'),
-                    # data splitting 
-                    n_datasets = 10000,
-                    n_train = 0.16, # 0.8,  # reduced n_train for more tractable training. # proportion of data to use for training
-                    n_val = 0.1,  # proportion of data to use for validation
-                    n_test = 0.74 # 0.1  # proportion of data to use for testing
-                                    ))
-                data_path = None # make sure TabDataMod (init below) doesn't explicitly pull data from path as final dataset
+                cfg.data_cfg.generation.data_path = data_path # update data_path in transformer data_cfg to path where hf_dataset gets locally downloaded
+                data_path = None # use data_cfg instead
                 # TransfDataGen does remaining work pulling data from specified path and manipulating it, within TabDataMod using cfg.data_cfg
         # INCLUDE OTHER CASES USING ONLINE TRANSFORMATION HERE FOR FUTURE REFERENCE
     # otherwise use local data_dir
@@ -88,8 +77,7 @@ def train():
         data_path = cfg.data_dir
 
     data_module = TabularDataModule(data_path, cfg.train_batch_size, cfg.val_batch_size, cfg.test_batch_size,
-                                    cfg.data_cfg)
-
+                                    cfg.data_cfg, use_sequence=cfg.use_sequence, sequence_length=cfg.sequence_length, use_huggingface=cfg.use_huggingface, lazy_loading=cfg.lazy_loading)
     # optimization
     args.max_epochs = cfg.max_epochs
 
@@ -103,7 +91,7 @@ def train():
         cfg.dump(os.path.join(cfg.work_dir, cfg.exp_name, cfg_name))
 
     # callbacks
-    callbacks = [plc.RichProgressBar(), plc.EarlyStopping(**cfg.early_stopping)]
+    callbacks = [plc.EarlyStopping(**cfg.early_stopping)]  # plc.RichProgressBar()
     # used to control early stopping
     # used to save the best model
     dirpath = os.path.join(cfg.work_dir, cfg.exp_name, 'ckpts')
@@ -116,8 +104,10 @@ def train():
     save_dir = os.path.join(cfg.work_dir, cfg.exp_name, 'log')
     os.makedirs(save_dir, exist_ok=True)
     if cfg.get('logging', True):
-        args.logger = [WandbLogger(name=cfg.exp_name, project=cfg.project_name, save_dir=save_dir)]
-
+        args.logger = [WandbLogger(name=cfg.exp_name, 
+                                   project=cfg.project_name, 
+                                   save_dir=save_dir, 
+                                   notes=args.wandb_notes)]
     # load trainer
     trainer = Trainer.from_argparse_args(args)
 

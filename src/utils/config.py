@@ -598,6 +598,9 @@ class Config:
                     attr_str = _indent(attr_str, indent) + ')' + end
                 elif isinstance(v, list):
                     attr_str = _format_list(k, v, use_mapping) + end
+                elif inspect.isclass(v):
+                    v_string = f"{v.__module__}.{v.__name__}"
+                    attr_str = k + f"={v_string}"
                 else:
                     attr_str = _format_basic_types(k, v, use_mapping) + end
 
