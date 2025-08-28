@@ -1,13 +1,13 @@
 # %%
 import torch
 import torch.nn as nn
-import numpy as np
 import copy
+import math
 from einops import rearrange, reduce
 import pytorch_lightning as pl
 from typing import Optional
 
-PADDING_VALUE = -1e9
+PADDING_VALUE = -1e9  # legacy default; overridden dynamically by dtype in attention
 # %%
 class TransformerEncoder(pl.LightningModule):
     """
@@ -27,8 +27,10 @@ class TransformerEncoder(pl.LightningModule):
         qk/v_dim: see EncoderBlock docs
         """
         super().__init__()
-        self.encoder = EncoderBlock(n_heads, d_model, d_hidden, dropout, qk_dim, v_dim)
-        self.model = nn.Sequential(*[copy.deepcopy(self.encoder) for _ in range(n_blocks)])
+        # Build a stack of encoder blocks. Avoid keeping an extra unused block
+        # as an attribute to prevent registering unused parameters.
+        encoder_block = EncoderBlock(n_heads, d_model, d_hidden, dropout, qk_dim, v_dim)
+        self.model = nn.Sequential(*[copy.deepcopy(encoder_block) for _ in range(n_blocks)])
         self._initialize_weights(self.model)
         self.lr = lr
         self.weight_decay = weight_decay
@@ -44,6 +46,8 @@ class TransformerEncoder(pl.LightningModule):
         for m in model.modules():
             if isinstance(m, torch.nn.Linear):
                 torch.nn.init.xavier_normal_(m.weight)
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
 
     def forward(self, x, padding_mask=None) -> torch.Tensor:
         # x is (batch_size, seq_len, emb_dim)
@@ -51,7 +55,14 @@ class TransformerEncoder(pl.LightningModule):
         context = context_dict['data']
         # aggregate over all layers
         if self.pooling == 'average': # average pooling
-            averaged_context = reduce(context, "bs seqlen d_model -> bs d_model", 'mean')
+            if padding_mask is not None:
+                # Mask out padded positions before averaging
+                padding_mask_expanded = padding_mask.unsqueeze(-1)  # (bs, seq, 1)
+                masked_context = context * padding_mask_expanded  # zero out padded positions
+                seq_lengths = padding_mask.sum(dim=1, keepdim=True).float().clamp_min(1.0)  # (bs, 1)
+                averaged_context = masked_context.sum(dim=1) / seq_lengths  # (bs, d_model)
+            else:
+                averaged_context = reduce(context, "bs seqlen d_model -> bs d_model", 'mean')
             output = self.final_linear(averaged_context)
         elif self.pooling == 'attention':
             pass  # TODO: implement this later
@@ -59,7 +70,7 @@ class TransformerEncoder(pl.LightningModule):
             concatenated_context = rearrange(context, "bs seqlen d_model -> bs (seqlen d_model)")
             output = self.final_linear(concatenated_context)
         # padding_mask = context_dict['padding_mask'] # in case you need it 
-        return output # shape (bs, 1, 1)
+        return output # shape (bs, 1)
     
     # copied from other methods - modify as needed
     def training_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:
@@ -151,7 +162,7 @@ class EncoderBlock(nn.Module):
 
         # MultiHeadAttention sublayer
         z = self.attn_norm(x)
-        z, _ = self.mh_attn(x, x, x, padding_mask) # out is (bs, seq, d_model)
+        z, _ = self.mh_attn(z, z, z, padding_mask) # out is (bs, seq, d_model)
         z = x + self.attn_dropout(z) 
 
         # MLP sublayer
@@ -178,13 +189,16 @@ class MultiHeadAttentionBlock(nn.Module):
         self.proj = nn.Linear(v_dim * n_heads, out_dim)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, queries, keys, values, padding_mask=None) -> torch.tensor:
+    def forward(self, queries, keys, values, padding_mask=None) -> torch.Tensor:
         """
         In self attention, queries = keys = values = x
 
-        padding_mask: mask for ignoring certain columns of the raw attention matrix when applying softmax. 'True' corresps. to padding tokens. 
+        padding_mask: boolean mask of shape (bs, seq) indicating valid (non-padded) tokens.
+        Columns (keys) where mask is False (padded positions) are ignored when applying softmax.
         
-        padding_mask is used to set columns corresp. to padded tokens to -1e9, so they effectively contribute nothing to the softmax and are set to 0. this has the effect of ensuring that padded tokens are not attended to. (rows corresp. to padding are not masked, as they only need to be masked/ignored at loss calculation to ensure they have no effect on the loss and thus learning.)
+        The mask is used to set columns corresponding to padded tokens to a large negative value (PADDING_VALUE),
+        so they effectively contribute nothing to the softmax and are set to 0.
+        Rows corresponding to padding are not masked here; they should be handled in the loss.
         """
         # x is (batch_size, seq_len, emb_dim), where seq_len is max sequence length of all sequences in batch
         bs, seq, _ = queries.shape # batch_size, seq_len 
@@ -199,16 +213,21 @@ class MultiHeadAttentionBlock(nn.Module):
 
         # get raw attention scores
         attn = Q @ K.transpose(2,3) # (bs, n_heads, seq, seq)
+        
+        # normalize BEFORE softmax
+        # scale attention logits for stability using a Python float to respect tensor dtype
+        d_k = K.shape[-1]
+        attn = attn * (1.0 / math.sqrt(d_k))
 
         if padding_mask is not None:
-            # (bs, seq, 1) -> (bs, 1, seq, 1) for n_head dimension broadcasting
-            padding_mask = padding_mask.unsqueeze(dim=1)
-            attn.masked_fill(~padding_mask, PADDING_VALUE) 
+            # padding_mask should be (bs, seq) -> (bs, 1, 1, seq) for broadcasting
+            # Mask out columns (keys) where mask is False (padded positions)
+            padding_mask = padding_mask.unsqueeze(1).unsqueeze(1)  # (bs, 1, 1, seq)
+            # Use dtype-aware negative infinity to avoid overflow/NaNs in mixed precision
+            mask_val = torch.finfo(attn.dtype).min if torch.is_floating_point(attn) else PADDING_VALUE
+            attn = attn.masked_fill(~padding_mask, mask_val)
             # see above for explanation of padding masking
 
-        # normalize
-        d_k = K.shape[-1]
-        attn /= np.sqrt(d_k)
         attn = torch.softmax(attn, dim=-1) # same shape
 
         # apply dropout to attention scores
