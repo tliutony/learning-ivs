@@ -44,9 +44,10 @@ class LennonIVGenerator(nn.Module, DataGenerator):
         control_covariance: torch.Tensor = None,
         control_str: float = 0,
         n_controls: int = 0,
+        device: str = "cpu",
     ):
         super().__init__()
-
+        self.device = torch.device(device)
         self.n_samples_range = n_samples_range
         self.tau_range = tau_range
         self.base_seed = base_seed
@@ -63,20 +64,21 @@ class LennonIVGenerator(nn.Module, DataGenerator):
         if control_covariance is not None:
             assert control_covariance.shape == (n_controls, n_controls)
 
-        instrument_covariance = generate_cov_matrix(n_instruments, instrument_cov_base)
+        instrument_covariance = generate_cov_matrix(n_instruments, instrument_cov_base).to(self.device)
         self.instrument_covariance = instrument_covariance
         self.instrument_sampler = MultivariateNormal(
-            torch.zeros(self.n_instruments), self.instrument_covariance
+            torch.zeros(self.n_instruments, device=self.device), self.instrument_covariance
         )
 
         # currently follows the Beta pattern of Lennon et al. 2022, corresponds to their pi
         self.instrument_coefficients = torch.pow(
-            torch.ones(self.n_instruments) * 0.5, torch.arange(0, self.n_instruments)
+            torch.ones(self.n_instruments, device=self.device) * 0.5,
+            torch.arange(0, self.n_instruments, device=self.device),
         )
 
         # shuffle coefficients
         self.instrument_coefficients = self.instrument_coefficients[
-            torch.randperm(self.n_instruments)
+            torch.randperm(self.n_instruments, device=self.device)
         ]
         # determine C coefficient
         A = (
@@ -100,15 +102,15 @@ class LennonIVGenerator(nn.Module, DataGenerator):
         eps = 1e-6
 
         # Lennon et al. 2022/Belloni et al. 2012 don't appear to guarantee this...
-        self.confound_covariance = torch.Tensor(
+        self.confound_covariance = torch.tensor(
             [
                 [self.sigma_y**2 + eps,       self.sigma_y * self.sigma_v],
                 [self.sigma_y * self.sigma_v, self.sigma_v**2 + eps],  # current hack to get things positive definite
             ]
-        )
+        , device=self.device)
         # print(self.confound_covariance)
         self.confound_sampler = MultivariateNormal(
-            torch.zeros(2), self.confound_covariance
+            torch.zeros(2, device=self.device), self.confound_covariance
         )
 
         self.control_str = control_str
@@ -152,9 +154,40 @@ class LennonIVGenerator(nn.Module, DataGenerator):
         # return data matrix of T, Y, Z
         return torch.cat([torch.Tensor([treat, outcome]), instrument_sample])
 
-    def batch(self, tau: float, batch_size: int):
-        """Generate batch of examples"""
-        return torch.stack([self.forward(tau) for _ in range(batch_size)])
+    def batch(self, tau: float, batch_size: int) -> torch.Tensor:
+        """Generate a batch of samples using vectorized sampling and matrix ops.
+
+        Returns a tensor of shape (batch_size, 2 + n_instruments): columns are [T, Y, Z0..Z{n_instruments-1}].
+        """
+        # Sample instruments: (batch_size, n_instruments)
+        Z = self.instrument_sampler.sample((batch_size,))
+
+        # Build full instrument matrix to size max_vars by padding zeros if needed
+        if self.max_vars > self.n_instruments:
+            pad = torch.zeros(batch_size, self.max_vars - self.n_instruments, device=Z.device, dtype=Z.dtype)
+            instrument_matrix = torch.cat([Z, pad], dim=1)  # (batch_size, max_vars)
+        else:
+            instrument_matrix = Z  # (batch_size, n_instruments == max_vars)
+
+        # pi coefficients to length max_vars
+        pi = torch.cat([
+            self.instrument_coefficients,
+            torch.zeros(self.max_vars - self.n_instruments, device=Z.device, dtype=Z.dtype),
+        ])  # (max_vars,)
+
+        # Confounder noise: (batch_size, 2) -> eps_y, eps_v
+        eps = self.confound_sampler.sample((batch_size,))
+        epsilon_y = eps[:, 0]
+        epsilon_v = eps[:, 1]
+
+        # Treatment and outcome
+        t_no_noise = instrument_matrix @ pi  # (batch_size,)
+        treat = self.instrument_activation(t_no_noise) + epsilon_v  # (batch_size,)
+        outcome = tau * self.tau_activation(treat) + torch.randn(batch_size, device=treat.device) + epsilon_y  # (batch_size,)
+
+        # Return packed tensor [T, Y, Z0..]
+        data = torch.cat([treat.unsqueeze(1), outcome.unsqueeze(1), Z], dim=1)
+        return data
 
     def generate(self) -> dict:
         """
@@ -167,9 +200,12 @@ class LennonIVGenerator(nn.Module, DataGenerator):
         )
         tau = np.random.uniform(self.tau_range[0], self.tau_range[1])
         data = self.batch(tau, n_samples)
-        
+
         return {
-            "df": pd.DataFrame(data.numpy(), columns=["T", "Y"] + [f"Z{i}" for i in range(self.n_instruments)]),
+            "df": pd.DataFrame(
+                data.detach().cpu().numpy(),
+                columns=["T", "Y"] + [f"Z{i}" for i in range(self.n_instruments)],
+            ),
             "treatment_effect": tau,
             "n_samples": n_samples,
         }

@@ -3,6 +3,8 @@ import random
 import pandas as pd
 from tqdm import tqdm
 from argparse import ArgumentParser
+from typing import Tuple
+import torch
 
 import os
 import sys
@@ -24,7 +26,7 @@ def save_to_parquet(df: pd.DataFrame, file_path: str) -> None:
 
 
 def datasets_split_and_save(datasets: list, work_dir: str, n_train: float = 0.6, n_val: float = 0.2,
-                            n_test: float = 0.2,) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
+                            n_test: float = 0.2, n_jobs: int = 8) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Merge a list of datasets into three df: data train, val, and test sets, and save them to csv files
 
@@ -45,21 +47,21 @@ def datasets_split_and_save(datasets: list, work_dir: str, n_train: float = 0.6,
     testset = datasets[int((n_train + n_val) * len(datasets)):]
 
     # Save datasets to parquet files
-    _ = joblib.Parallel(n_jobs=8)(joblib.delayed(save_to_parquet)(df['df'], os.path.join(work_dir, f"train/uid={i}-"
+    _ = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(save_to_parquet)(df['df'], os.path.join(work_dir, f"train/uid={i}-"
                                                                                                    f"treatment_effect={df['treatment_effect']}-"
                                                                                                    f"n_samples={df['n_samples']}"
                                                                                                    f".parquet"))
                                                                 for i, df in tqdm(enumerate(trainset),
                                                                                     desc="Saving trainset...",
                                                                                     total=len(trainset)))
-    _ = joblib.Parallel(n_jobs=8)(joblib.delayed(save_to_parquet)(df['df'], os.path.join(work_dir, f"val/uid={i}-"
+    _ = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(save_to_parquet)(df['df'], os.path.join(work_dir, f"val/uid={i}-"
                                                                                              f"treatment_effect={df['treatment_effect']}-"
                                                                                              f"n_samples={df['n_samples']}"
                                                                                              f".parquet"))
                                                                 for i, df in tqdm(enumerate(valset),
                                                                                     desc="Saving valset...",
                                                                                     total=len(valset)))
-    _ = joblib.Parallel(n_jobs=8)(joblib.delayed(save_to_parquet)(df['df'], os.path.join(work_dir, f"test/uid={i}-"
+    _ = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(save_to_parquet)(df['df'], os.path.join(work_dir, f"test/uid={i}-"
                                                                                              f"treatment_effect={df['treatment_effect']}-"
                                                                                              f"n_samples={df['n_samples']}"
                                                                                              f".parquet"))
@@ -68,7 +70,7 @@ def datasets_split_and_save(datasets: list, work_dir: str, n_train: float = 0.6,
                                                                                     total=len(testset)))
 
 
-def generate_data_from_config(cfg_path: str, work_dir: str = '') -> None:
+def generate_data_from_config(cfg_path: str, work_dir: str = '', n_jobs: int = 8, device: str = 'cpu') -> None:
     """
     Generate data from config file (.py)
 
@@ -88,22 +90,27 @@ def generate_data_from_config(cfg_path: str, work_dir: str = '') -> None:
 
     # Initialize data generator
     generator = cfg.generation.pop('generator')
+    # inject device if supported by generator
+    cfg.generation['device'] = device
     if hasattr(data_generators, generator):
         generator = getattr(data_generators, generator)(**cfg.generation)
     else:
         raise NotImplementedError(f"Generator {generator} is not implemented")
 
     # Data generation
-    datasets = generator.generate_all(cfg.n_datasets)
-    datasets_split_and_save(datasets, work_dir, cfg.n_train, cfg.n_val, cfg.n_test)
+    with torch.no_grad():
+        datasets = generator.generate_all(cfg.n_datasets)
+    datasets_split_and_save(datasets, work_dir, cfg.n_train, cfg.n_val, cfg.n_test, n_jobs)
 
 
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--cfg', type=str, default='datasets/linear/lennon100_fixed_tau.py')
     parser.add_argument('--work_dir', type=str, default='')
+    parser.add_argument('--n_jobs', type=int, default=8)
+    parser.add_argument('--device', type=str, default='cpu', choices=['cpu', 'cuda'])
     args = parser.parse_args()
 
     cfg = args.cfg
     work_dir = args.work_dir
-    generate_data_from_config(cfg, work_dir)
+    generate_data_from_config(cfg, work_dir, n_jobs=args.n_jobs, device=args.device)

@@ -14,7 +14,9 @@ models = {
         # preference for hf_url over local chkpt
         "hf_url": "learning-ivs/pooling-mlp",
         "chkpt_path": "/home/tliu/learning-ivs/workdir/pool_mlp_lennon_bs256_lr0.004_eps100_hidden256_depth4/ckpts/exp_name=pool_mlp_lennon_bs256_lr0.004_eps100_hidden256_depth4-val_loss=0.0070.ckpt" # This path will also be saved in the results file
-    }
+    },
+    # Use default hyperparameters; benchmark runner will instantiate directly
+    "TabPFNPoolingRegressor": {}
 }
 
 # metrics to compile for each model, kwargs for each metric

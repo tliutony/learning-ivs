@@ -30,6 +30,8 @@ class TabularDataModule(pl.LightningDataModule):
         use_sequence: bool = False,  # New parameter to control sequence usage
         sequence_length: int = 1000,
         lazy_loading: bool = True,  # New parameter to control lazy loading
+        deterministic_sequence: bool = True,  # Ensure deterministic per-dataset windowing
+        random_seed_base: int = 12345,
     ) -> None:
         """
         Initialize the csv data module
@@ -54,6 +56,8 @@ class TabularDataModule(pl.LightningDataModule):
         self.use_sequence = use_sequence
         self.sequence_length = sequence_length if use_sequence else None
         self.lazy_loading = lazy_loading
+        self.deterministic_sequence = deterministic_sequence
+        self.random_seed_base = random_seed_base
 
         if data_dir is None and data_cfg is None:
             raise ValueError(
@@ -192,7 +196,14 @@ class TabularDataModule(pl.LightningDataModule):
         Returns:
             train dataloader
         """
-        trainset = DataFrameDataset(self.trainset, self.use_sequence, self.sequence_length, self.lazy_loading)
+        trainset = DataFrameDataset(
+            self.trainset,
+            self.use_sequence,
+            self.sequence_length,
+            self.lazy_loading,
+            deterministic=self.deterministic_sequence,
+            random_seed_base=self.random_seed_base,
+        )
         return DataLoader(
             trainset,
             batch_size=self.train_batch_size,
@@ -208,7 +219,14 @@ class TabularDataModule(pl.LightningDataModule):
         Returns:
             validation dataloader
         """
-        valset = DataFrameDataset(self.valset, self.use_sequence, self.sequence_length, self.lazy_loading)
+        valset = DataFrameDataset(
+            self.valset,
+            self.use_sequence,
+            self.sequence_length,
+            self.lazy_loading,
+            deterministic=self.deterministic_sequence,
+            random_seed_base=self.random_seed_base,
+        )
         return DataLoader(
             valset,
             batch_size=self.val_batch_size,
@@ -224,7 +242,14 @@ class TabularDataModule(pl.LightningDataModule):
         Returns:
             test dataloader
         """
-        testset = DataFrameDataset(self.testset, self.use_sequence, self.sequence_length, self.lazy_loading)
+        testset = DataFrameDataset(
+            self.testset,
+            self.use_sequence,
+            self.sequence_length,
+            self.lazy_loading,
+            deterministic=self.deterministic_sequence,
+            random_seed_base=self.random_seed_base,
+        )
         return DataLoader(
             testset,
             batch_size=self.test_batch_size,
@@ -240,7 +265,8 @@ class DataFrameDataset(Dataset):
     Dataset for dataframe data
     """
 
-    def __init__(self, dataset: list[tuple], use_sequence: bool, sequence_length: int = None, lazy_loading: bool = False) -> None:
+    def __init__(self, dataset: list[tuple], use_sequence: bool, sequence_length: int = None, lazy_loading: bool = False,
+                 deterministic: bool = True, random_seed_base: int = 12345) -> None:
         """
         Initialize the dataframe dataset
 
@@ -254,6 +280,8 @@ class DataFrameDataset(Dataset):
         self.use_sequence = use_sequence
         self.sequence_length = sequence_length
         self.lazy_loading = lazy_loading
+        self.deterministic = deterministic
+        self.random_seed_base = random_seed_base
 
     def __getitem__(self, idx: int) -> [torch.Tensor, torch.Tensor]:
         """
@@ -276,7 +304,11 @@ class DataFrameDataset(Dataset):
                 repeats = self.sequence_length // len(df) + 1
                 df = df.iloc[np.tile(np.arange(len(df)), repeats)[:self.sequence_length]]
             elif len(df) > self.sequence_length:
-                df = df.sample(n=self.sequence_length, replace=False)
+                if self.deterministic:
+                    rnd_state = self.random_seed_base + idx
+                    df = df.sample(n=self.sequence_length, replace=False, random_state=rnd_state)
+                else:
+                    df = df.sample(n=self.sequence_length, replace=False)
         
         x = torch.tensor(df.to_numpy(), dtype=torch.float32)
         y = torch.tensor(y, dtype=torch.float32)
